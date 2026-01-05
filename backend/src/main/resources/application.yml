@@ -7,6 +7,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
   ai:
+    # OpenAI Configuration (Default)
+    openai:
+      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
+      chat:
+        options:
+          model: gpt-4o
+          temperature: 0.7
+          max-tokens: 4096
+    
+    # Vertex AI Gemini Configuration (Alternative)
     vertex:
       ai:
         gemini:
@@ -29,6 +39,10 @@ app:
   kogito:
     bpmn-dir: ./data/kogito/processes
     drl-dir: ./data/kogito/rules
+  ai:
+    # AI Provider Selection: "openai" or "gemini"
+    # Default: openai (using gpt-4o)
+    provider: ${AI_PROVIDER:openai}
 
 # Kogito configuration
 kogito:

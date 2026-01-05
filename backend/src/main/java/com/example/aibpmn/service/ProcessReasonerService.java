@@ -14,18 +14,21 @@ import java.util.UUID;
 /**
  * Service for reasoning over process descriptions and extracting structured BPMN elements.
  * Converts natural language process descriptions into ProcessNodes, ProcessEdges, RuleModels, and Explanations.
+ * 
+ * Uses configured AI provider (OpenAI GPT-4o or Google Gemini 2.0).
  */
 @Service
 public class ProcessReasonerService {
     
     private static final Logger logger = LoggerFactory.getLogger(ProcessReasonerService.class);
     
-    private final GeminiClient geminiClient;
+    private final AiClient aiClient;
     private final ObjectMapper objectMapper;
     
-    public ProcessReasonerService(GeminiClient geminiClient, ObjectMapper objectMapper) {
-        this.geminiClient = geminiClient;
+    public ProcessReasonerService(AiClient aiClient, ObjectMapper objectMapper) {
+        this.aiClient = aiClient;
         this.objectMapper = objectMapper;
+        logger.info("ProcessReasonerService initialized with AI provider: {}", aiClient.getProviderName());
     }
     
     /**
@@ -45,11 +48,12 @@ public class ProcessReasonerService {
             processDescription.length());
         
         try {
-            // 1. Create prompt for Gemini to extract structured elements
+            // 1. Create prompt for AI to extract structured elements
             String prompt = createReasoningPrompt(processDescription);
             
-            // 2. Call Gemini to analyze and structure the description
-            String jsonResponse = geminiClient.generateFromText(prompt);
+            // 2. Call AI provider to analyze and structure the description
+            logger.debug("Using AI provider: {}", aiClient.getProviderName());
+            String jsonResponse = aiClient.generateFromText(prompt);
             
             logger.debug("Received JSON response from Gemini (length: {} chars)",
                 jsonResponse.length());

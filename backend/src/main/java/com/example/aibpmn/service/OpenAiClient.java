@@ -19,36 +19,35 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Client service for interacting with Google Gemini 2.0 via Spring AI.
+ * Client service for interacting with OpenAI GPT-4o via Spring AI.
  * Supports both text-only prompts and image + prompt interactions.
  * 
- * This is an alternative AI provider (default is OpenAI GPT-4o).
- * To use this, set: app.ai.provider=gemini in application.yml
+ * This is the default AI provider for the AI BPMN Compiler.
  */
-@Service("geminiClient")
-public class GeminiClient implements AiClient {
+@Service("openAiClient")
+public class OpenAiClient implements AiClient {
     
-    private static final Logger logger = LoggerFactory.getLogger(GeminiClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(OpenAiClient.class);
     
     private final ChatClient chatClient;
     private final ChatModel chatModel;
     
-    public GeminiClient(ChatModel chatModel) {
+    public OpenAiClient(ChatModel chatModel) {
         this.chatModel = chatModel;
         this.chatClient = ChatClient.builder(chatModel).build();
-        logger.info("GeminiClient initialized with Gemini 2.0");
+        logger.info("OpenAiClient initialized with GPT-4o model");
     }
     
     @Override
     public String getProviderName() {
-        return "Google Gemini 2.0";
+        return "OpenAI GPT-4o";
     }
     
     /**
-     * Send a text-only prompt to Gemini and get the response.
+     * Send a text-only prompt to OpenAI GPT-4o and get the response.
      *
      * @param prompt The text prompt to send
-     * @return Raw text response from Gemini
+     * @return Raw text response from GPT-4o
      * @throws IllegalArgumentException if prompt is null or empty
      */
     @Override
@@ -57,7 +56,7 @@ public class GeminiClient implements AiClient {
             throw new IllegalArgumentException("Prompt cannot be null or empty");
         }
         
-        logger.debug("Sending text-only prompt to Gemini (length: {} chars)", prompt.length());
+        logger.debug("Sending text-only prompt to OpenAI GPT-4o (length: {} chars)", prompt.length());
         
         try {
             String response = chatClient
@@ -66,23 +65,24 @@ public class GeminiClient implements AiClient {
                 .call()
                 .content();
             
-            logger.debug("Received response from Gemini (length: {} chars)", 
+            logger.debug("Received response from OpenAI (length: {} chars)", 
                 response != null ? response.length() : 0);
             
             return response;
             
         } catch (Exception e) {
-            logger.error("Error calling Gemini API with text prompt", e);
-            throw new RuntimeException("Failed to generate response from Gemini: " + e.getMessage(), e);
+            logger.error("Error calling OpenAI API with text prompt", e);
+            throw new RuntimeException("Failed to generate response from OpenAI: " + e.getMessage(), e);
         }
     }
     
     /**
-     * Send an image with a text prompt to Gemini and get the response.
+     * Send an image with a text prompt to OpenAI GPT-4o and get the response.
+     * GPT-4o has vision capabilities and can analyze images.
      *
      * @param imagePath Path to the image file
      * @param prompt The text prompt to send along with the image
-     * @return Raw text response from Gemini
+     * @return Raw text response from GPT-4o
      * @throws IllegalArgumentException if imagePath or prompt is null/empty
      * @throws RuntimeException if image cannot be read or API call fails
      */
@@ -96,7 +96,7 @@ public class GeminiClient implements AiClient {
             throw new IllegalArgumentException("Prompt cannot be null or empty");
         }
         
-        logger.debug("Sending image + prompt to Gemini (image: {}, prompt length: {} chars)", 
+        logger.debug("Sending image + prompt to OpenAI GPT-4o (image: {}, prompt length: {} chars)", 
             imagePath.getFileName(), prompt.length());
         
         try {
@@ -113,11 +113,11 @@ public class GeminiClient implements AiClient {
             // Create user message with text and image
             UserMessage userMessage = new UserMessage(prompt, List.of(media));
             
-            // Create prompt and call Gemini
-            Prompt geminiPrompt = new Prompt(List.of(userMessage));
-            String response = chatModel.call(geminiPrompt).getResult().getOutput().getText();
+            // Create prompt and call OpenAI
+            Prompt openAiPrompt = new Prompt(List.of(userMessage));
+            String response = chatModel.call(openAiPrompt).getResult().getOutput().getText();
             
-            logger.debug("Received response from Gemini (length: {} chars)", 
+            logger.debug("Received response from OpenAI (length: {} chars)", 
                 response != null ? response.length() : 0);
             
             return response;
@@ -126,17 +126,17 @@ public class GeminiClient implements AiClient {
             logger.error("Error reading image file: {}", imagePath, e);
             throw new RuntimeException("Failed to read image file: " + e.getMessage(), e);
         } catch (Exception e) {
-            logger.error("Error calling Gemini API with image", e);
-            throw new RuntimeException("Failed to generate response from Gemini: " + e.getMessage(), e);
+            logger.error("Error calling OpenAI API with image", e);
+            throw new RuntimeException("Failed to generate response from OpenAI: " + e.getMessage(), e);
         }
     }
     
     /**
-     * Send an image (as Resource) with a text prompt to Gemini.
+     * Send an image (as Resource) with a text prompt to OpenAI GPT-4o.
      *
      * @param imageResource Spring Resource containing the image
      * @param prompt The text prompt to send along with the image
-     * @return Raw text response from Gemini
+     * @return Raw text response from GPT-4o
      * @throws IllegalArgumentException if imageResource or prompt is null/empty
      * @throws RuntimeException if image cannot be read or API call fails
      */
@@ -150,7 +150,7 @@ public class GeminiClient implements AiClient {
             throw new IllegalArgumentException("Prompt cannot be null or empty");
         }
         
-        logger.debug("Sending image resource + prompt to Gemini (prompt length: {} chars)", 
+        logger.debug("Sending image resource + prompt to OpenAI GPT-4o (prompt length: {} chars)", 
             prompt.length());
         
         try {
@@ -165,18 +165,18 @@ public class GeminiClient implements AiClient {
             // Create user message with text and image
             UserMessage userMessage = new UserMessage(prompt, List.of(media));
             
-            // Create prompt and call Gemini
-            Prompt geminiPrompt = new Prompt(List.of(userMessage));
-            String response = chatModel.call(geminiPrompt).getResult().getOutput().getText();
+            // Create prompt and call OpenAI
+            Prompt openAiPrompt = new Prompt(List.of(userMessage));
+            String response = chatModel.call(openAiPrompt).getResult().getOutput().getText();
             
-            logger.debug("Received response from Gemini (length: {} chars)", 
+            logger.debug("Received response from OpenAI (length: {} chars)", 
                 response != null ? response.length() : 0);
             
             return response;
             
         } catch (Exception e) {
-            logger.error("Error calling Gemini API with image resource", e);
-            throw new RuntimeException("Failed to generate response from Gemini: " + e.getMessage(), e);
+            logger.error("Error calling OpenAI API with image resource", e);
+            throw new RuntimeException("Failed to generate response from OpenAI: " + e.getMessage(), e);
         }
     }
     
@@ -213,3 +213,4 @@ public class GeminiClient implements AiClient {
         }
     }
 }
+

@@ -2,13 +2,52 @@
 
 Get the AI BPMN Compiler up and running in minutes!
 
+## 📚 Documentation Quick Links
+
+- **[END_TO_END_TESTING_GUIDE.md](./END_TO_END_TESTING_GUIDE.md)** - Complete step-by-step testing guide (recommended)
+- **[QUICK_TEST_CHECKLIST.md](./QUICK_TEST_CHECKLIST.md)** - 5-minute quick test checklist
+- **[CANONICAL_MODEL_ARCHITECTURE.md](./CANONICAL_MODEL_ARCHITECTURE.md)** - Architecture principles
+- **This file** - Basic quick start
+
 ## Prerequisites
 
 - **Java 17+** (for backend)
 - **Node.js 18+** and npm (for frontend)
 - **Git** (to clone the repository)
+- **Gemini API Key** (for AI features) - [Get one here](https://makersuite.google.com/app/apikey)
 
 ## Quick Start
+
+### 0. Configure AI API Key (First Time Only)
+
+#### Option A: OpenAI (Default, Recommended)
+
+```bash
+# Set your OpenAI API key as environment variable
+export OPENAI_API_KEY="sk-your-openai-api-key-here"
+
+# On Windows PowerShell:
+# $env:OPENAI_API_KEY="sk-your-openai-api-key-here"
+
+# On Windows CMD:
+# set OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+**Get API Key**: Visit [OpenAI Platform](https://platform.openai.com/api-keys)
+
+#### Option B: Google Gemini (Alternative)
+
+```bash
+# Set your Gemini API key as environment variable
+export AI_PROVIDER=gemini
+export GEMINI_API_KEY="your-gemini-api-key-here"
+export VERTEX_AI_PROJECT_ID="your-project-id"
+export VERTEX_AI_LOCATION="us-central1"
+```
+
+**Get API Key**: Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+📖 **See [AI_CLIENT_CONFIGURATION.md](backend/AI_CLIENT_CONFIGURATION.md) for detailed configuration**
 
 ### 1. Start the Backend
 
@@ -16,7 +55,7 @@ Get the AI BPMN Compiler up and running in minutes!
 # Navigate to backend directory
 cd backend
 
-# Build the project
+# Build the project (first time)
 ./gradlew clean build
 
 # Run the application
@@ -24,6 +63,9 @@ cd backend
 ```
 
 The backend will start on **http://localhost:8080**
+
+**Verify Backend**: `curl http://localhost:8080/actuator/health`  
+Expected: `{"status":"UP"}`
 
 ### 2. Start the Frontend
 

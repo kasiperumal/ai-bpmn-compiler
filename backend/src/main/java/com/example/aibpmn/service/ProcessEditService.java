@@ -11,8 +11,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -23,6 +21,8 @@ import java.util.Optional;
 /**
  * Service for handling process edit intents.
  * Interprets natural language instructions and applies them to the process model.
+ * 
+ * Uses configured AI provider (OpenAI GPT-4o or Google Gemini 2.0).
  */
 @Service
 public class ProcessEditService {
@@ -30,18 +30,19 @@ public class ProcessEditService {
     private static final Logger logger = LoggerFactory.getLogger(ProcessEditService.class);
 
     private final ProcessModelRepository processModelRepository;
-    private final ChatClient chatClient;
+    private final AiClient aiClient;
     private final BpmnGeneratorService bpmnGeneratorService;
     private final ObjectMapper objectMapper;
 
     public ProcessEditService(ProcessModelRepository processModelRepository,
-                              ChatClient.Builder chatClientBuilder,
+                              AiClient aiClient,
                               BpmnGeneratorService bpmnGeneratorService,
                               ObjectMapper objectMapper) {
         this.processModelRepository = processModelRepository;
-        this.chatClient = chatClientBuilder.build();
+        this.aiClient = aiClient;
         this.bpmnGeneratorService = bpmnGeneratorService;
         this.objectMapper = objectMapper;
+        logger.info("ProcessEditService initialized with AI provider: {}", aiClient.getProviderName());
     }
 
     /**
@@ -115,10 +116,8 @@ public class ProcessEditService {
 
         String prompt = buildEditIntentPrompt(processJson, request);
 
-        logger.debug("Sending edit intent prompt to AI...");
-        String response = chatClient.prompt(new Prompt(prompt))
-                .call()
-                .content();
+        logger.debug("Sending edit intent prompt to AI provider: {}", aiClient.getProviderName());
+        String response = aiClient.generateFromText(prompt);
 
         logger.debug("AI response for edit intent: {}", response);
         return response;
@@ -302,10 +301,8 @@ public class ProcessEditService {
 
         String prompt = buildNodeExplanationPrompt(processJson, node);
 
-        logger.debug("Generating explanation for node {}...", node.getId());
-        String response = chatClient.prompt(new Prompt(prompt))
-                .call()
-                .content();
+        logger.debug("Generating explanation for node {} using {}...", node.getId(), aiClient.getProviderName());
+        String response = aiClient.generateFromText(prompt);
 
         logger.debug("AI explanation for node {}: {}", node.getId(), response);
         return response.trim();

@@ -13,24 +13,25 @@ import java.nio.file.Paths;
 
 /**
  * Service for AI-powered process inference operations.
- * Uses GeminiClient to analyze images and text to generate process descriptions.
+ * Uses configured AI provider (OpenAI GPT-4o or Google Gemini 2.0) to analyze images and text.
  */
 @Service
 public class AiInferenceService {
     
     private static final Logger logger = LoggerFactory.getLogger(AiInferenceService.class);
     
-    private final GeminiClient geminiClient;
+    private final AiClient aiClient;
     private final ProcessModelRepository processModelRepository;
     private final String uploadBaseDir;
     
     public AiInferenceService(
-            GeminiClient geminiClient,
+            AiClient aiClient,
             ProcessModelRepository processModelRepository,
             @Value("${app.upload.base-dir:./data/uploads}") String uploadBaseDir) {
-        this.geminiClient = geminiClient;
+        this.aiClient = aiClient;
         this.processModelRepository = processModelRepository;
         this.uploadBaseDir = uploadBaseDir;
+        logger.info("AiInferenceService initialized with AI provider: {}", aiClient.getProviderName());
     }
     
     /**
@@ -67,7 +68,7 @@ public class AiInferenceService {
         
         // 4. Call Gemini to analyze the image
         try {
-            String description = geminiClient.generateFromImage(imagePath, prompt);
+            String description = aiClient.generateFromImage(imagePath, prompt);
             
             logger.info("Successfully inferred process description for processId: {} (length: {} chars)",
                 processId, description.length());
