@@ -1,0 +1,177 @@
+{
+  "id": "order-processing-001",
+  "name": "Order Processing Workflow",
+  "version": "1.0.0",
+  "status": "DRAFT",
+  "nodes": [
+    {
+      "id": "start-001",
+      "type": "EVENT",
+      "name": "Order Received",
+      "properties": {
+        "eventType": "START",
+        "trigger": "message"
+      },
+      "explanation": {
+        "nodeId": "start-001",
+        "reason": "Process begins when a new order is received from the e-commerce platform",
+        "source": "AI-Generated",
+        "confidenceScore": 0.95,
+        "timestamp": "2026-01-02T12:00:00"
+      },
+      "approval": {
+        "nodeId": "start-001",
+        "aiApproved": true,
+        "userApproved": false,
+        "aiComment": "Standard start event for order processing",
+        "aiApprovedAt": "2026-01-02T12:00:00"
+      }
+    },
+    {
+      "id": "task-001",
+      "type": "TASK",
+      "name": "Validate Order",
+      "properties": {
+        "taskType": "SERVICE",
+        "implementation": "OrderValidationService",
+        "timeout": "PT5M"
+      },
+      "explanation": {
+        "nodeId": "task-001",
+        "reason": "Validates order details including inventory availability and payment information",
+        "source": "AI-Generated",
+        "confidenceScore": 0.92
+      },
+      "approval": {
+        "nodeId": "task-001",
+        "aiApproved": true,
+        "userApproved": true,
+        "aiComment": "Essential validation step",
+        "userComment": "Approved - standard validation process",
+        "approvedBy": "john.doe@example.com",
+        "aiApprovedAt": "2026-01-02T12:01:00",
+        "userApprovedAt": "2026-01-02T12:05:00"
+      }
+    },
+    {
+      "id": "gateway-001",
+      "type": "GATEWAY",
+      "name": "Order Valid?",
+      "properties": {
+        "gatewayType": "EXCLUSIVE",
+        "direction": "DIVERGING"
+      },
+      "explanation": {
+        "nodeId": "gateway-001",
+        "reason": "Routes the process based on validation outcome",
+        "source": "AI-Generated",
+        "confidenceScore": 0.98
+      },
+      "approval": {
+        "nodeId": "gateway-001",
+        "aiApproved": true,
+        "userApproved": true,
+        "approvedBy": "john.doe@example.com"
+      }
+    },
+    {
+      "id": "task-002",
+      "type": "TASK",
+      "name": "Process Payment",
+      "properties": {
+        "taskType": "SERVICE",
+        "implementation": "PaymentService"
+      }
+    },
+    {
+      "id": "task-003",
+      "type": "TASK",
+      "name": "Send Rejection Email",
+      "properties": {
+        "taskType": "SERVICE",
+        "implementation": "NotificationService"
+      }
+    },
+    {
+      "id": "end-001",
+      "type": "EVENT",
+      "name": "Order Completed",
+      "properties": {
+        "eventType": "END"
+      }
+    },
+    {
+      "id": "end-002",
+      "type": "EVENT",
+      "name": "Order Rejected",
+      "properties": {
+        "eventType": "END",
+        "result": "ERROR"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-001",
+      "fromNodeId": "start-001",
+      "toNodeId": "task-001",
+      "label": "Start"
+    },
+    {
+      "id": "edge-002",
+      "fromNodeId": "task-001",
+      "toNodeId": "gateway-001"
+    },
+    {
+      "id": "edge-003",
+      "fromNodeId": "gateway-001",
+      "toNodeId": "task-002",
+      "condition": "orderValid == true",
+      "label": "Valid"
+    },
+    {
+      "id": "edge-004",
+      "fromNodeId": "gateway-001",
+      "toNodeId": "task-003",
+      "condition": "orderValid == false",
+      "label": "Invalid"
+    },
+    {
+      "id": "edge-005",
+      "fromNodeId": "task-002",
+      "toNodeId": "end-001"
+    },
+    {
+      "id": "edge-006",
+      "fromNodeId": "task-003",
+      "toNodeId": "end-002"
+    }
+  ],
+  "rules": [
+    {
+      "id": "rule-001",
+      "expression": "order.totalAmount > 1000",
+      "description": "Orders over $1000 require additional approval",
+      "ruleType": "VALIDATION",
+      "priority": 1,
+      "enabled": true
+    },
+    {
+      "id": "rule-002",
+      "expression": "customer.creditScore < 600",
+      "description": "Customers with low credit scores require manual review",
+      "ruleType": "RISK_ASSESSMENT",
+      "priority": 2,
+      "enabled": true
+    },
+    {
+      "id": "rule-003",
+      "expression": "order.items.size() > 10",
+      "description": "Bulk orders (>10 items) get priority processing",
+      "ruleType": "ROUTING",
+      "priority": 3,
+      "enabled": true
+    }
+  ]
+}
+

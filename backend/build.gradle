@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.4.3'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example.aibpmn'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' } // For Spring AI milestones
+}
+
+ext {
+    kogitoVersion = '10.1.0'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.kie.kogito:kogito-spring-boot-bom:${kogitoVersion}"
+    }
+}
+
+dependencies {
+    // Spring Boot
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    
+    // Kogito Core
+    implementation 'org.kie.kogito:kogito-api'
+    implementation 'org.kie.kogito:kogito-drools'
+    
+    // jBPM Spring Boot Starter (BPMN Process Engine)
+    implementation 'org.jbpm:jbpm-spring-boot-starter'
+    
+    // Kogito Addons
+    implementation 'org.kie:kie-addons-springboot-process-management'
+    
+    // Drools for runtime rule execution
+    implementation 'org.drools:drools-core'
+    implementation 'org.drools:drools-compiler'
+    implementation 'org.drools:drools-mvel'
+    
+    // Spring AI - Vertex AI Gemini
+    implementation 'org.springframework.ai:spring-ai-vertex-ai-gemini-spring-boot-starter:1.0.0-M6'
+    
+    // Jackson for JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'io.rest-assured:rest-assured'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
