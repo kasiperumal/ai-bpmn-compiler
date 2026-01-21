@@ -7,6 +7,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.Media;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.util.MimeTypeUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -33,7 +35,7 @@ public class GeminiClient implements AiClient {
     private final ChatClient chatClient;
     private final ChatModel chatModel;
     
-    public GeminiClient(ChatModel chatModel) {
+    public GeminiClient(@Qualifier("vertexAiGeminiChat") ChatModel chatModel) {
         this.chatModel = chatModel;
         this.chatClient = ChatClient.builder(chatModel).build();
         logger.info("GeminiClient initialized with Gemini 2.0");
@@ -176,6 +178,61 @@ public class GeminiClient implements AiClient {
             
         } catch (Exception e) {
             logger.error("Error calling Gemini API with image resource", e);
+            throw new RuntimeException("Failed to generate response from Gemini: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Send a base64-encoded image with a text prompt to Google Gemini 2.0.
+     *
+     * @param base64Image Base64-encoded image data
+     * @param mimeType Image MIME type (e.g., "image/jpeg", "image/png")
+     * @param prompt The text prompt to send along with the image
+     * @return Raw text response from Gemini
+     * @throws IllegalArgumentException if parameters are null/empty
+     * @throws RuntimeException if API call fails
+     */
+    @Override
+    public String generateFromImageAndText(String base64Image, String mimeType, String prompt) {
+        if (base64Image == null || base64Image.trim().isEmpty()) {
+            throw new IllegalArgumentException("Base64 image cannot be null or empty");
+        }
+        if (mimeType == null || mimeType.trim().isEmpty()) {
+            throw new IllegalArgumentException("MIME type cannot be null or empty");
+        }
+        if (prompt == null || prompt.trim().isEmpty()) {
+            throw new IllegalArgumentException("Prompt cannot be null or empty");
+        }
+        
+        logger.debug("Sending base64 image + prompt to Gemini 2.0 (mimeType: {}, prompt length: {} chars)", 
+            mimeType, prompt.length());
+        
+        try {
+            // Decode base64 image
+            byte[] imageData = Base64.getDecoder().decode(base64Image);
+            
+            // Create media object with image data as resource
+            Resource imageResource = new ByteArrayResource(imageData);
+            MimeType mimeTypeObj = MimeType.valueOf(mimeType);
+            Media media = new Media(mimeTypeObj, imageResource);
+            
+            // Create user message with text and image
+            UserMessage userMessage = new UserMessage(prompt, List.of(media));
+            
+            // Create prompt and call Gemini
+            Prompt geminiPrompt = new Prompt(List.of(userMessage));
+            String response = chatModel.call(geminiPrompt).getResult().getOutput().getText();
+            
+            logger.debug("Received response from Gemini (length: {} chars)", 
+                response != null ? response.length() : 0);
+            
+            return response;
+            
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid base64 image data", e);
+            throw new RuntimeException("Failed to decode base64 image: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error calling Gemini API with base64 image", e);
             throw new RuntimeException("Failed to generate response from Gemini: " + e.getMessage(), e);
         }
     }

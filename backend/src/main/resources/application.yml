@@ -1,32 +1,63 @@
 spring:
   application:
     name: ai-bpmn-compiler
+  
+  # H2 In-Memory Database Configuration
+  datasource:
+    url: jdbc:h2:mem:aibpmn;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  # H2 Console (for development/debugging)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  
+  # JPA Configuration
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  
   servlet:
     multipart:
       enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
+  
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/java
+    livereload:
+      enabled: true
   ai:
     # OpenAI Configuration (Default)
     openai:
-      api-key: ${OPENAI_API_KEY:your-openai-api-key-here}
+      api-key: 
       chat:
         options:
           model: gpt-4o
-          temperature: 0.7
+          temperature: 0.5
           max-tokens: 4096
     
     # Vertex AI Gemini Configuration (Alternative)
     vertex:
       ai:
         gemini:
-          project-id: ${VERTEX_AI_PROJECT_ID:your-project-id}
+          project-id: ${VERTEX_AI_PROJECT_ID:gen-lang-client-0526458881}
           location: ${VERTEX_AI_LOCATION:us-central1}
-          api-key: ${GEMINI_API_KEY:your-api-key-here}
+          api-key: 
           chat:
             options:
               model: gemini-2.0-flash-exp
-              temperature: 0.7
+              temperature: 0.5
               maxOutputTokens: 4096
 
 server:

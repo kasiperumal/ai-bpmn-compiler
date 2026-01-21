@@ -46,6 +46,18 @@ public interface AiClient {
     String generateFromImage(Resource imageResource, String prompt);
     
     /**
+     * Send a base64-encoded image with a text prompt to the AI.
+     *
+     * @param base64Image Base64-encoded image data
+     * @param mimeType Image MIME type (e.g., "image/jpeg", "image/png")
+     * @param prompt The text prompt to send along with the image
+     * @return Raw text response from AI
+     * @throws IllegalArgumentException if parameters are null/empty
+     * @throws RuntimeException if API call fails
+     */
+    String generateFromImageAndText(String base64Image, String mimeType, String prompt);
+    
+    /**
      * Get the name of the AI provider.
      *
      * @return Provider name (e.g., "OpenAI", "Gemini")

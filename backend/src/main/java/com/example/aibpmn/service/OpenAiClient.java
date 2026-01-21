@@ -7,6 +7,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.model.Media;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import org.springframework.util.MimeTypeUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -32,7 +34,7 @@ public class OpenAiClient implements AiClient {
     private final ChatClient chatClient;
     private final ChatModel chatModel;
     
-    public OpenAiClient(ChatModel chatModel) {
+    public OpenAiClient(@Qualifier("openAiChatModel") ChatModel chatModel) {
         this.chatModel = chatModel;
         this.chatClient = ChatClient.builder(chatModel).build();
         logger.info("OpenAiClient initialized with GPT-4o model");
@@ -176,6 +178,61 @@ public class OpenAiClient implements AiClient {
             
         } catch (Exception e) {
             logger.error("Error calling OpenAI API with image resource", e);
+            throw new RuntimeException("Failed to generate response from OpenAI: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Send a base64-encoded image with a text prompt to OpenAI GPT-4o.
+     *
+     * @param base64Image Base64-encoded image data
+     * @param mimeType Image MIME type (e.g., "image/jpeg", "image/png")
+     * @param prompt The text prompt to send along with the image
+     * @return Raw text response from GPT-4o
+     * @throws IllegalArgumentException if parameters are null/empty
+     * @throws RuntimeException if API call fails
+     */
+    @Override
+    public String generateFromImageAndText(String base64Image, String mimeType, String prompt) {
+        if (base64Image == null || base64Image.trim().isEmpty()) {
+            throw new IllegalArgumentException("Base64 image cannot be null or empty");
+        }
+        if (mimeType == null || mimeType.trim().isEmpty()) {
+            throw new IllegalArgumentException("MIME type cannot be null or empty");
+        }
+        if (prompt == null || prompt.trim().isEmpty()) {
+            throw new IllegalArgumentException("Prompt cannot be null or empty");
+        }
+        
+        logger.debug("Sending base64 image + prompt to OpenAI GPT-4o (mimeType: {}, prompt length: {} chars)", 
+            mimeType, prompt.length());
+        
+        try {
+            // Decode base64 image
+            byte[] imageData = Base64.getDecoder().decode(base64Image);
+            
+            // Create media object with image data as resource
+            Resource imageResource = new ByteArrayResource(imageData);
+            MimeType mimeTypeObj = MimeType.valueOf(mimeType);
+            Media media = new Media(mimeTypeObj, imageResource);
+            
+            // Create user message with text and image
+            UserMessage userMessage = new UserMessage(prompt, List.of(media));
+            
+            // Create prompt and call OpenAI
+            Prompt openAiPrompt = new Prompt(List.of(userMessage));
+            String response = chatModel.call(openAiPrompt).getResult().getOutput().getText();
+            
+            logger.debug("Received response from OpenAI (length: {} chars)", 
+                response != null ? response.length() : 0);
+            
+            return response;
+            
+        } catch (IllegalArgumentException e) {
+            logger.error("Invalid base64 image data", e);
+            throw new RuntimeException("Failed to decode base64 image: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Error calling OpenAI API with base64 image", e);
             throw new RuntimeException("Failed to generate response from OpenAI: " + e.getMessage(), e);
         }
     }

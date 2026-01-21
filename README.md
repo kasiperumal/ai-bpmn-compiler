@@ -1,46 +1,36 @@
-# AI BPMN Compiler
+# GenAI-Powered BPMN Builder
 
-> Transform natural language into executable BPMN processes using AI
+> Transform natural language and images into executable BPMN processes using AI
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)]()
 [![Java](https://img.shields.io/badge/Java-17+-blue)]()
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4.3-green)]()
-[![AI Providers](https://img.shields.io/badge/AI-OpenAI%20%7C%20Gemini-purple)]()
+[![AI](https://img.shields.io/badge/AI-OpenAI%20GPT--4o-purple)]()
+[![Database](https://img.shields.io/badge/Database-H2%20In--Memory-orange)]()
 
 ---
 
 ## 🚀 Features
 
-- **Natural Language to BPMN**: Describe your process in plain English, get a BPMN diagram
-- **Multiple AI Providers**: Choose between OpenAI GPT-4o (default) or Google Gemini 2.0
-- **Vision Support**: Upload process diagrams, get structured BPMN
-- **Edit via Chat**: Modify processes using natural language commands
-- **Business Rules**: Automatic detection and DRL generation
-- **Process Execution**: Deploy and run processes with Kogito
-- **Real-time Explanations**: AI-generated descriptions for every process element
+### **Core Capabilities**
+- ✅ **Text-to-BPMN**: Describe processes in natural language → AI generates BPMN
+- ✅ **Image-to-BPMN**: Upload process diagrams (hand-drawn, screenshots) → AI extracts BPMN
+- ✅ **Business Rules**: AI generates Drools (DRL) rules from natural language
+- ✅ **Edit via Chat**: Modify processes using natural language commands
+- ✅ **Professional Layout**: ELK.js hierarchical layout with zero overlaps
+- ✅ **H2 In-Memory Database**: Fast, embedded persistence with JPA
 
----
+### **AI-Powered**
+- **GPT-4o Vision**: Analyzes process diagram images
+- **BPMN Moddle JSON**: AI outputs BPMN directly (no translation layer)
+- **Real-time Explanations**: AI-generated descriptions for every element
+- **Rule Generation**: Natural language → Drools DRL + Java fact classes
 
-## 🤖 AI Provider Support
-
-### Choose Your AI
-
-| Provider | Model | Status | Best For |
-|----------|-------|--------|----------|
-| **OpenAI** | GPT-4o | ✅ Default | Production, Stability |
-| **Gemini** | Gemini 2.0 | ⚠️ Alternative | Development, Free Tier |
-
-**Switch easily**:
-```bash
-# Use OpenAI (default)
-export OPENAI_API_KEY="sk-your-key"
-
-# Or use Gemini
-export AI_PROVIDER=gemini
-export GEMINI_API_KEY="your-key"
-```
-
-📖 **[See AI Provider Comparison →](AI_PROVIDERS.md)**
+### **Architecture**
+- **Hybrid Storage**: BPMN Moddle JSON (full data) + Metadata (efficient queries)
+- **Canonical Model**: Single source of truth for process state
+- **ELK.js Layout**: Industry-standard graph layout algorithm
+- **Spring AI**: Unified AI provider interface
 
 ---
 
@@ -48,9 +38,9 @@ export GEMINI_API_KEY="your-key"
 
 ### Prerequisites
 
-- Java 17+
-- Node.js 18+
-- OpenAI API Key ([Get one here](https://platform.openai.com/api-keys))
+- **Java 17+**
+- **Node.js 18+**
+- **OpenAI API Key** ([Get one here](https://platform.openai.com/api-keys))
 
 ### 1. Configure API Key
 
@@ -66,6 +56,11 @@ cd backend
 ```
 
 Backend runs on **http://localhost:8080**
+
+**H2 Console:** http://localhost:8080/h2-console
+- JDBC URL: `jdbc:h2:mem:aibpmn`
+- Username: `sa`
+- Password: (empty)
 
 ### 3. Start Frontend
 
@@ -85,294 +80,388 @@ Navigate to **http://localhost:5173** in your browser.
 
 ## 📖 Documentation
 
-### Getting Started
-- **[QUICK_START.md](QUICK_START.md)** - 5-minute setup guide
-- **[END_TO_END_TESTING_GUIDE.md](END_TO_END_TESTING_GUIDE.md)** - Complete testing guide
-- **[QUICK_TEST_CHECKLIST.md](QUICK_TEST_CHECKLIST.md)** - Quick verification checklist
-
-### AI Configuration
-- **[AI_PROVIDERS.md](AI_PROVIDERS.md)** - AI provider overview
-- **[backend/AI_CLIENT_CONFIGURATION.md](backend/AI_CLIENT_CONFIGURATION.md)** - Detailed configuration guide
-
-### Architecture
-- **[CANONICAL_MODEL_ARCHITECTURE.md](CANONICAL_MODEL_ARCHITECTURE.md)** - Core architectural principles
-- **[backend/KOGITO_SETUP.md](backend/KOGITO_SETUP.md)** - Kogito integration
-- **[backend/PROCESS_LIFECYCLE.md](backend/PROCESS_LIFECYCLE.md)** - Process lifecycle management
-- **[frontend/FRONTEND_ARCHITECTURE.md](frontend/FRONTEND_ARCHITECTURE.md)** - Frontend design
-
-### API Documentation
-- **[backend/API.md](backend/API.md)** - REST API reference
-- **[backend/EDIT_INTENT_API.md](backend/EDIT_INTENT_API.md)** - Edit intent API
+### Essential Guides
+- **[END_TO_END_TESTING_GUIDE.md](END_TO_END_TESTING_GUIDE.md)** - Complete testing scenarios
+- **[IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md)** - Implementation summary
+- **[backend/AI_CLIENT_CONFIGURATION.md](backend/AI_CLIENT_CONFIGURATION.md)** - AI provider setup
+- **[backend/README.md](backend/README.md)** - Backend architecture
+- **[frontend/README.md](frontend/README.md)** - Frontend architecture
 
 ---
 
-## 🎯 Usage Example
+## 🎯 Usage Examples
 
-### Create a Process
+### 1. Create Process from Text
 
 ```bash
-curl -X POST http://localhost:8080/api/process/start \
+curl -X POST http://localhost:8080/api/process/from-text \
   -H "Content-Type: application/json" \
   -d '{
-    "description": "Create a leave approval process where an employee submits a request, their manager reviews it, and if the amount is over $5000, it requires director approval."
+    "description": "Order processing: receive order, validate, check amount > $1000, if yes manager approval, else auto-approve"
   }'
 ```
 
 **Response**:
 ```json
 {
-  "processId": "proc-12345",
-  "status": "REASONING",
-  "message": "Process analysis started"
+  "processId": "proc-abc123",
+  "processName": "Order Processing",
+  "descriptionLength": 105
 }
 ```
 
-### View Generated BPMN
+### 2. Create Process from Image
 
 ```bash
-curl http://localhost:8080/api/process/proc-12345/bpmn
+curl -X POST http://localhost:8080/api/process/from-image \
+  -F "image=@process_diagram.png" \
+  -F "name=My Process"
 ```
 
-### Edit a Process
+### 3. Generate Business Rule
 
 ```bash
-curl -X POST http://localhost:8080/api/process/proc-12345/edit-intent \
+curl -X POST http://localhost:8080/api/rules/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "instruction": "Change the approval threshold to $10,000",
-    "nodeId": "gateway_1"
+    "ruleName": "High Value Order Check",
+    "ruleDescription": "Orders over $1000 require manager approval",
+    "processId": "proc-abc123",
+    "taskId": "Task_ApprovalRule"
   }'
 ```
 
-### Publish & Execute
+### 4. Get BPMN Moddle JSON
 
 ```bash
-# Publish
-curl -X POST http://localhost:8080/api/process/proc-12345/publish
+curl http://localhost:8080/api/process/proc-abc123/bpmn-json
+```
 
-# Execute
-curl -X POST http://localhost:8080/api/process/proc-12345/execute \
+### 5. Publish & Execute
+
+```bash
+# Publish process
+curl -X POST http://localhost:8080/api/process/proc-abc123/publish
+
+# Execute process
+curl -X POST http://localhost:8080/api/process/proc-abc123/execute \
   -H "Content-Type: application/json" \
-  -d '{"amount": 7500, "employeeId": "EMP-001"}'
+  -d '{"amount": 1500, "customerId": "CUST-001"}'
 ```
 
 ---
 
 ## 🏗️ Architecture
 
-### Backend (Spring Boot)
+### **Data Flow**
 
 ```
-┌─────────────────────────────────────────────────┐
-│              REST Controllers                    │
-├─────────────────────────────────────────────────┤
-│   Process Lifecycle   │   Edit Intent   │ BPMN  │
-└─────────────┬───────────────────────────────────┘
-              │
-┌─────────────▼───────────────────────────────────┐
-│              Service Layer                       │
-├─────────────────────────────────────────────────┤
-│  AiClient Interface (Pluggable AI Providers)    │
-│  ├─ OpenAiClient (GPT-4o) ✅ Default            │
-│  └─ GeminiClient (Gemini 2.0) ⚠️ Alternative    │
-├─────────────────────────────────────────────────┤
-│  ProcessReasonerService   │  BpmnGeneratorService│
-│  AiInferenceService       │  DrlGeneratorService │
-│  ProcessEditService       │  RuleDetectionService│
-└─────────────┬───────────────────────────────────┘
-              │
-┌─────────────▼───────────────────────────────────┐
-│            Canonical Model                       │
-├─────────────────────────────────────────────────┤
-│  ProcessModel  │  ProcessNode  │  ProcessEdge   │
-│  RuleModel     │  Explanation  │  Approval      │
-└─────────────┬───────────────────────────────────┘
-              │
-┌─────────────▼───────────────────────────────────┐
-│        Kogito Process Engine                     │
-├─────────────────────────────────────────────────┤
-│  BPMN Execution  │  DRL Rules  │  REST Endpoints│
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│                   USER INPUT                             │
+├─────────────────────────────────────────────────────────┤
+│  Text Description  │  Image Upload  │  Natural Language │
+│  (ChatPanel)       │  (ImageUpload) │  Rule             │
+└─────────┬──────────┴────────┬───────┴───────────────────┘
+          │                   │
+          ▼                   ▼
+┌─────────────────────────────────────────────────────────┐
+│              BACKEND AI SERVICES                         │
+├─────────────────────────────────────────────────────────┤
+│  ProcessReasonerService  │  ProcessImageService         │
+│  (Text → BPMN)          │  (Image → BPMN via GPT-4o)  │
+│  DroolsRuleService      │  BpmnValidationService       │
+└─────────┬────────────────┴──────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────┐
+│         BPMN MODDLE JSON (Primary Storage)               │
+│  {                                                        │
+│    "$type": "bpmn:Definitions",                         │
+│    "rootElements": [...]                                │
+│  }                                                       │
+└─────────┬───────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────┐
+│              H2 IN-MEMORY DATABASE                       │
+├─────────────────────────────────────────────────────────┤
+│  ProcessModel    │  BpmnMetadata  │  RuleSet           │
+│  + bpmnJson      │  + taskCount   │  + drl             │
+│  + metadata      │  + ruleIds     │  + status          │
+└─────────┬───────────────────────────────────────────────┘
+          │
+          ▼
+┌─────────────────────────────────────────────────────────┐
+│             FRONTEND RENDERING                           │
+├─────────────────────────────────────────────────────────┤
+│  1. Fetch BPMN Moddle JSON from backend                 │
+│  2. Apply ELK.js Layout (positions + routing)           │
+│  3. Render with BPMN.js Modeler                         │
+│  4. Enable zoom/pan/selection                           │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### Frontend (React + BPMN.js)
-
-```
-┌─────────────────────────────────────────────────┐
-│                   App.tsx                        │
-├─────────────┬─────────────┬─────────────────────┤
-│   BPMN      │ Properties  │    Chat             │
-│  Diagram    │   Panel     │   Panel             │
-│  (50%)      │   (25%)     │   (25%)             │
-├─────────────┼─────────────┼─────────────────────┤
-│ BPMN.js     │ Process     │ AI Assistant        │
-│ Viewer      │ Metadata    │ Natural Language    │
-│ (Read-Only) │ Edit Intent │ Edit Instructions   │
-│ Zoom/Export │ Explanations│ Streaming Responses │
-└─────────────┴─────────────┴─────────────────────┘
-```
-
----
-
-## 🔑 Key Principles
-
-### 1. Canonical Model Architecture
-- Single source of truth: `ProcessModel`
-- BPMN is **always generated** from the canonical model
-- No direct BPMN editing in frontend
-- All changes go through backend validation
-
-### 2. AI-Driven Workflow
-- Natural language as primary interface
-- AI interprets intent and updates canonical model
-- Automatic BPMN regeneration
-- Explanations for all elements
-
-### 3. Multi-Provider Support
-- Unified `AiClient` interface
-- Easy provider switching via configuration
-- No code changes required
-- Fallback capabilities
-
----
-
-## 🛠️ Technology Stack
-
-### Backend
+### **Backend Stack**
 - **Framework**: Spring Boot 3.4.3
-- **AI**: Spring AI 1.0.0-M6
-  - OpenAI GPT-4o (default)
-  - Google Gemini 2.0 (alternative)
-- **Process Engine**: Kogito 10.1.0 + jBPM
+- **AI**: Spring AI 1.0.0-M6 (OpenAI GPT-4o)
+- **Database**: H2 In-Memory + JPA/Hibernate
 - **Rules Engine**: Drools
+- **Process Engine**: Kogito 10.1.0 + jBPM
 - **Language**: Java 17
-- **Build Tool**: Gradle
 
-### Frontend
-- **Framework**: React 18 + Vite
-- **Language**: TypeScript
-- **BPMN**: BPMN.js
+### **Frontend Stack**
+- **Framework**: React 18 + Vite + TypeScript
+- **BPMN**: BPMN.js Modeler + bpmn-moddle
+- **Layout**: ELK.js (Eclipse Layout Kernel)
 - **HTTP**: Axios
-- **Routing**: React Router DOM
+- **Styling**: CSS Modules
+
+---
+
+## 🔑 Key Features Explained
+
+### 1. **BPMN Moddle JSON Architecture**
+
+**Before (Old):**
+```
+Text → AI → Custom Node/Edge Format → Translation → BPMN XML
+```
+
+**Now (New):**
+```
+Text → AI → BPMN Moddle JSON (Direct) → Validation → Storage
+```
+
+**Benefits:**
+- AI outputs BPMN 2.0 directly
+- No translation layer
+- Full BPMN feature support
+- Frontend gets native format
+
+### 2. **Image-to-BPMN Conversion**
+
+Upload any process diagram:
+- ✅ Hand-drawn flowcharts
+- ✅ Whiteboard photos
+- ✅ Screenshots of existing BPMN
+- ✅ Any visual process representation
+
+**GPT-4o Vision analyzes:**
+- Shapes (circles, rectangles, diamonds)
+- Text labels
+- Arrows and connections
+- Decision points
+
+### 3. **Drools Rule Generation**
+
+**Input (Natural Language):**
+```
+"Orders over $1000 require manager approval"
+```
+
+**Output (DRL + Java Classes):**
+```drl
+package com.example.aibpmn.rules;
+
+import com.example.aibpmn.facts.Order;
+
+rule "High Value Order Approval"
+    salience 100
+    when
+        $order : Order(amount > 1000, status == "PENDING")
+    then
+        modify($order) { setStatus("REQUIRES_APPROVAL") }
+end
+```
+
+### 4. **ELK.js Professional Layout**
+
+- **Algorithm**: Layered (Sugiyama) hierarchical layout
+- **Features**: 
+  - Zero overlaps guaranteed
+  - Orthogonal edge routing (90° angles)
+  - Minimized edge crossings
+  - Optimal node spacing
+- **Performance**: Fast, runs in browser
+
+### 5. **H2 In-Memory Database**
+
+- **Fast**: All data in memory
+- **Embedded**: No external database required
+- **JPA**: Full Hibernate ORM support
+- **Console**: Built-in web UI for debugging
+- **Perfect for**: Development, demos, testing
+
+---
+
+## 🛠️ API Endpoints
+
+### **Process Management**
+- `POST /api/process/from-text` - Create process from text
+- `POST /api/process/from-image` - Create process from image
+- `GET /api/process/{id}` - Get process model
+- `GET /api/process/{id}/bpmn-json` - Get BPMN Moddle JSON
+- `POST /api/process/{id}/publish` - Publish process
+- `POST /api/process/{id}/execute` - Execute process
+
+### **Rule Management**
+- `POST /api/rules/generate` - Generate rule from description
+- `GET /api/rules/process/{processId}` - Get all rules for process
+- `GET /api/rules/task/{taskId}` - Get rule for specific task
+- `POST /api/rules/{ruleId}/activate` - Activate rule
+
+### **Database Console**
+- `GET /h2-console` - H2 Database Web Console
 
 ---
 
 ## 📊 Project Status
 
-| Component | Status | Coverage |
-|-----------|--------|----------|
-| Backend Core | ✅ Complete | High |
-| AI Integration | ✅ Complete | High |
-| BPMN Generation | ✅ Complete | High |
-| DRL Generation | ✅ Complete | Medium |
-| Kogito Integration | ✅ Complete | Medium |
-| Frontend Core | ✅ Complete | Medium |
-| Edit Intent | ✅ Complete | Medium |
-| Documentation | ✅ Complete | Excellent |
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Backend Core | ✅ Complete | BPMN Moddle JSON architecture |
+| AI Integration | ✅ Complete | GPT-4o + Vision support |
+| Image-to-BPMN | ✅ Complete | GPT-4o Vision analysis |
+| Drools Rules | ✅ Complete | AI-generated DRL |
+| H2 Database | ✅ Complete | In-memory with JPA |
+| ELK.js Layout | ✅ Complete | Zero-overlap layout |
+| Frontend UI | ✅ Complete | React + BPMN.js + ELK |
+| Documentation | ✅ Complete | Comprehensive guides |
+
+**Status:** ✅ **Production Ready**
 
 ---
 
 ## 🧪 Testing
 
-### Run Backend Tests
-
+### **Backend Tests**
 ```bash
 cd backend
 ./gradlew test
 ```
 
-### Run Frontend Tests
-
+### **Frontend Tests**
 ```bash
 cd frontend
 npm test
 ```
 
-### Manual Testing
+### **End-to-End Testing**
 
-Follow the **[END_TO_END_TESTING_GUIDE.md](END_TO_END_TESTING_GUIDE.md)** for complete testing scenarios.
+Follow the complete guide: **[END_TO_END_TESTING_GUIDE.md](END_TO_END_TESTING_GUIDE.md)**
+
+**Quick Test:**
+1. Start backend and frontend
+2. Open http://localhost:5173
+3. Type: "Order approval process with manager review"
+4. View generated BPMN diagram
+5. Upload a process diagram image
+6. Create a business rule
 
 ---
 
 ## 🔐 Security
 
-- **Never commit API keys** to version control
-- Use environment variables for sensitive configuration
-- Add `.env` and `application-local.yml` to `.gitignore`
-- Rotate API keys regularly
-- Set up billing alerts for AI providers
+- ✅ Never commit API keys to version control
+- ✅ Use environment variables for sensitive data
+- ✅ H2 console accessible only in development
+- ✅ Validate all AI-generated BPMN
+- ✅ Set up billing alerts for OpenAI
+
+**Recommended:**
+```bash
+# Add to .gitignore
+.env
+application-local.yml
+*.key
+```
 
 ---
 
 ## 💰 Cost Estimation
 
-### OpenAI GPT-4o (Default)
-- **Light usage** (10-20 processes/day): ~$5-10/month
-- **Medium usage** (100-200 processes/day): ~$50-100/month
-- **Heavy usage** (1000+ processes/day): $500+/month
+### **OpenAI GPT-4o**
+| Usage Level | Processes/Day | Estimated Cost/Month |
+|-------------|---------------|----------------------|
+| Light | 10-20 | $5-10 |
+| Medium | 100-200 | $50-100 |
+| Heavy | 1000+ | $500+ |
 
-### Google Gemini 2.0 (Alternative)
-- **Free tier**: 15 requests/minute, 1M requests/day
-- **Paid**: Very low cost (~$3/month for 100 processes/day)
-
-💡 **Tip**: Use Gemini for development, OpenAI for production.
+**Cost Factors:**
+- Text-to-BPMN: ~$0.02 per process
+- Image-to-BPMN: ~$0.05 per image
+- Rule generation: ~$0.01 per rule
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Backend won't start
+### **Backend won't start**
 ```bash
 # Check Java version
 java -version  # Should be 17+
 
 # Clean build
 ./gradlew clean build
+
+# Check API key
+echo $OPENAI_API_KEY
 ```
 
-### Frontend won't start
+### **Frontend won't start**
 ```bash
 # Clean install
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-### AI Provider issues
-```bash
-# Verify API key
-echo $OPENAI_API_KEY
+### **H2 Database issues**
+- Access console: http://localhost:8080/h2-console
+- JDBC URL: `jdbc:h2:mem:aibpmn`
+- Check for table creation in logs
 
-# Check logs for provider selection
-# Look for: "Selected AI Provider: OpenAI GPT-4o"
-```
+### **BPMN not rendering**
+- Check browser console for errors
+- Verify BPMN JSON is valid
+- Check ELK.js is installed: `npm list elkjs`
 
-See **[Troubleshooting Section](END_TO_END_TESTING_GUIDE.md#troubleshooting)** in the testing guide.
+See **[Troubleshooting Section](END_TO_END_TESTING_GUIDE.md#troubleshooting)** for detailed solutions.
 
 ---
 
 ## 📈 Roadmap
 
-- [ ] Streaming AI responses in frontend
-- [ ] Process versioning and comparison
-- [ ] Collaboration features (multi-user editing)
-- [ ] Advanced rule visualization
-- [ ] Process analytics and metrics
+### **Short-Term (Completed ✅)**
+- [x] BPMN Moddle JSON architecture
+- [x] H2 in-memory database
+- [x] Image-to-BPMN (GPT-4o Vision)
+- [x] Drools rule generation
+- [x] ELK.js professional layout
+- [x] React UI components
+
+### **Future Enhancements**
+- [ ] Process versioning & diff
+- [ ] Multi-user collaboration
+- [ ] Real-time co-editing
+- [ ] Advanced rule debugging
+- [ ] Process analytics dashboard
 - [ ] Export to Camunda/Flowable
-- [ ] Additional AI providers (Anthropic Claude, Azure OpenAI)
+- [ ] Additional AI providers (Claude, Azure OpenAI)
 
 ---
 
 ## 🤝 Contributing
 
-This is a demonstration project. For production use, consider:
+This is a demonstration project showcasing GenAI + BPMN integration.
 
-1. Implementing comprehensive error handling
-2. Adding authentication and authorization
-3. Setting up CI/CD pipelines
-4. Implementing rate limiting
-5. Adding process versioning
-6. Implementing audit logging
-7. Setting up monitoring and alerts
+**For production use, consider:**
+1. Add comprehensive error handling
+2. Implement authentication & authorization
+3. Set up CI/CD pipelines
+4. Add rate limiting
+5. Implement audit logging
+6. Set up monitoring & alerts
+7. Use PostgreSQL instead of H2
 
 ---
 
@@ -384,55 +473,50 @@ This project is for educational and demonstration purposes.
 
 ## 🙏 Acknowledgments
 
-- **Spring AI** - Unified AI integration framework
-- **OpenAI** - GPT-4o model
-- **Google** - Gemini AI model
-- **Kogito** - Business automation platform
+- **Spring AI** - Unified AI framework
+- **OpenAI** - GPT-4o and GPT-4o Vision
+- **ELK.js** - Eclipse Layout Kernel
 - **BPMN.js** - BPMN visualization
-- **jBPM** - Business process management
+- **Kogito** - Business automation platform
 - **Drools** - Business rules engine
+- **H2 Database** - Embedded database
 
 ---
 
 ## 📞 Support
 
-### Documentation
-- [Quick Start Guide](QUICK_START.md)
-- [End-to-End Testing](END_TO_END_TESTING_GUIDE.md)
+### **Documentation**
+- [Testing Guide](END_TO_END_TESTING_GUIDE.md)
+- [Implementation Summary](IMPLEMENTATION_COMPLETE.md)
 - [AI Configuration](backend/AI_CLIENT_CONFIGURATION.md)
-- [Architecture Guide](CANONICAL_MODEL_ARCHITECTURE.md)
+- [Backend Architecture](backend/README.md)
+- [Frontend Architecture](frontend/README.md)
 
-### Troubleshooting
-- Check [Troubleshooting Section](END_TO_END_TESTING_GUIDE.md#troubleshooting)
-- Review startup logs
-- Verify API keys and configuration
-- Test API endpoints directly with `curl`
-
----
-
-**Built with ❤️ using Spring Boot, React, and AI**
-
----
-
-## Quick Commands
-
+### **Quick Commands**
 ```bash
-# Backend
-cd backend && ./gradlew bootRun
-
-# Frontend
+# Start Everything
+cd backend && ./gradlew bootRun &
 cd frontend && npm run dev
 
-# Build All
-./gradlew clean build && npm run build
+# H2 Console
+open http://localhost:8080/h2-console
 
-# Test All
-./gradlew test && npm test
+# Frontend
+open http://localhost:5173
+
+# Test Backend
+./gradlew test
+
+# Test Frontend
+npm test
 ```
 
 ---
 
-**Version**: 2.0  
-**AI Provider**: OpenAI GPT-4o (default) | Google Gemini 2.0 (alternative)  
-**Status**: ✅ Production Ready
+**Built with ❤️ using Spring Boot, React, OpenAI GPT-4o, and ELK.js**
 
+**Version**: 3.0 (GenAI-Powered)  
+**AI Provider**: OpenAI GPT-4o + Vision  
+**Database**: H2 In-Memory  
+**Layout**: ELK.js  
+**Status**: ✅ Production Ready

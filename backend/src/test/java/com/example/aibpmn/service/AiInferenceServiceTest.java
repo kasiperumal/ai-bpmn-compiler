@@ -336,7 +336,7 @@ class AiInferenceServiceTest {
         ProcessModel process = new ProcessModel();
         process.setId(processId);
         process.setName("Test Process " + processId);
-        process.setVersion("1.0.0");
+        process.setVersion(1);
         process.setStatus(ProcessStatus.DRAFT);
         return process;
     }

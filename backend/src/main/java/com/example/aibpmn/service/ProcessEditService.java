@@ -125,11 +125,12 @@ public class ProcessEditService {
 
     /**
      * Builds the prompt for interpreting the edit intent.
+     * SUPPORTS COMPREHENSIVE EDITING: node type changes, additions, deletions, property updates
      */
     private String buildEditIntentPrompt(String processJson, EditIntentRequest request) {
         StringBuilder prompt = new StringBuilder();
-        prompt.append("You are a BPMN process editor. Your task is to interpret natural language edit instructions ");
-        prompt.append("and generate structured edit commands in JSON format.\n\n");
+        prompt.append("You are an expert BPMN process editor with FULL editing capabilities. ");
+        prompt.append("Your task is to interpret natural language edit instructions and generate structured edit commands in JSON format.\n\n");
 
         prompt.append("Current Process Model (JSON):\n");
         prompt.append(processJson);
@@ -143,17 +144,50 @@ public class ProcessEditService {
 
         prompt.append("Generate a JSON object with the following structure:\n");
         prompt.append("{\n");
-        prompt.append("  \"action\": \"rename\" | \"update_condition\" | \"update_description\" | \"add_node\" | \"delete_node\",\n");
+        prompt.append("  \"action\": \"rename\" | \"update_condition\" | \"update_description\" | \"change_type\" | \"update_property\" | \"add_rule\" | \"add_node\" | \"delete_node\",\n");
         prompt.append("  \"nodeId\": \"<node-id-to-modify>\",\n");
         prompt.append("  \"newValue\": \"<new-value>\",\n");
-        prompt.append("  \"field\": \"name\" | \"condition\" | \"description\"\n");
+        prompt.append("  \"field\": \"name\" | \"condition\" | \"description\" | \"type\" | \"<any-property-name>\",\n");
+        prompt.append("  \"newType\": \"START_EVENT\" | \"END_EVENT\" | \"USER_TASK\" | \"SERVICE_TASK\" | \"BUSINESS_RULE_TASK\" | \"EXCLUSIVE_GATEWAY\" | \"PARALLEL_GATEWAY\" (for change_type action),\n");
+        prompt.append("  \"ruleDetails\": { \"expression\": \"<condition-expression>\", \"description\": \"<rule-description>\" } (for add_rule action)\n");
         prompt.append("}\n\n");
 
-        prompt.append("Rules:\n");
-        prompt.append("1. Only support safe edits: rename, condition updates, description updates\n");
-        prompt.append("2. Do NOT change node types or process structure without explicit instruction\n");
-        prompt.append("3. If the instruction is ambiguous, choose the most conservative interpretation\n");
-        prompt.append("4. Return ONLY the JSON object, no additional text\n\n");
+        prompt.append("COMPREHENSIVE EDITING CAPABILITIES:\n");
+        prompt.append("1. **Change Node Type**: Convert any node to any other type (e.g., UserTask → BusinessRuleTask)\n");
+        prompt.append("2. **Add/Modify Rules**: Add business rules, conditions, decision logic\n");
+        prompt.append("3. **Rename**: Change node names\n");
+        prompt.append("4. **Update Conditions**: Modify gateway conditions, sequence flow conditions\n");
+        prompt.append("5. **Update Descriptions**: Change node descriptions and documentation\n");
+        prompt.append("6. **Add Nodes**: Insert new tasks, gateways, events\n");
+        prompt.append("7. **Delete Nodes**: Remove nodes from the process\n");
+        prompt.append("8. **Update Properties**: Modify any node property (assignee, form key, implementation, etc.)\n\n");
+
+        prompt.append("IMPORTANT RULES:\n");
+        prompt.append("1. Execute EXACTLY what the user requests - no restrictions\n");
+        prompt.append("2. If user wants to change a UserTask to BusinessRuleTask → use action: \"change_type\", newType: \"bpmn:BusinessRuleTask\"\n");
+        prompt.append("3. If user wants to add rules/conditions → use action: \"add_rule\" or \"update_condition\"\n");
+        prompt.append("4. If user wants to rename → use action: \"rename\"\n");
+        prompt.append("5. Be comprehensive - apply all requested changes\n");
+        prompt.append("6. Return ONLY the JSON object (no markdown code blocks, no extra text)\n\n");
+
+        prompt.append("BPMN TYPE FORMAT:\n");
+        prompt.append("- Business Rule Task: \"bpmn:BusinessRuleTask\"\n");
+        prompt.append("- User Task: \"bpmn:UserTask\"\n");
+        prompt.append("- Service Task: \"bpmn:ServiceTask\"\n");
+        prompt.append("- Manual Task: \"bpmn:ManualTask\"\n");
+        prompt.append("- Script Task: \"bpmn:ScriptTask\"\n");
+        prompt.append("- Send Task: \"bpmn:SendTask\"\n");
+        prompt.append("- Receive Task: \"bpmn:ReceiveTask\"\n");
+        prompt.append("- Exclusive Gateway: \"bpmn:ExclusiveGateway\"\n");
+        prompt.append("- Parallel Gateway: \"bpmn:ParallelGateway\"\n");
+        prompt.append("- Inclusive Gateway: \"bpmn:InclusiveGateway\"\n\n");
+
+        prompt.append("EXAMPLES:\n");
+        prompt.append("User: \"Change this to a business rule task\"\n");
+        prompt.append("Response: {\"action\":\"change_type\",\"nodeId\":\"<id>\",\"newType\":\"bpmn:BusinessRuleTask\",\"field\":\"type\"}\n\n");
+
+        prompt.append("User: \"Add a rule: if amount > 5000 then approve\"\n");
+        prompt.append("Response: {\"action\":\"add_rule\",\"nodeId\":\"<id>\",\"ruleDetails\":{\"expression\":\"${amount > 5000}\",\"description\":\"Approve if amount exceeds 5000\"}}\n\n");
 
         prompt.append("JSON Edit Command:");
 
@@ -162,13 +196,17 @@ public class ProcessEditService {
 
     /**
      * Applies the edit commands to the process model.
+     * SUPPORTS COMPREHENSIVE EDITING: type changes, rules, properties, structure
      *
      * @return true if changes were made, false otherwise.
      */
     private boolean applyEditCommands(ProcessModel processModel, String editCommandsJson, String targetNodeId) {
         try {
+            // Strip markdown code blocks if present (AI sometimes wraps JSON in ```json ... ```)
+            String cleanJson = stripMarkdownCodeBlocks(editCommandsJson);
+            
             // Parse the AI response as a JSON edit command
-            EditCommand command = objectMapper.readValue(editCommandsJson, EditCommand.class);
+            EditCommand command = objectMapper.readValue(cleanJson, EditCommand.class);
 
             String nodeId = StringUtils.hasText(command.nodeId) ? command.nodeId : targetNodeId;
 
@@ -196,6 +234,23 @@ public class ProcessEditService {
                     logger.info("Renamed node {} to {}", nodeId, command.newValue);
                     return true;
 
+                case "change_type":
+                    // Change node type (e.g., UserTask → BusinessRuleTask)
+                    // The specific BPMN type is stored as a property, not in the NodeType enum
+                    if (StringUtils.hasText(command.newType)) {
+                        String oldBpmnType = (String) node.getProperty("bpmnType");
+                        node.addProperty("bpmnType", command.newType);
+                        logger.info("Changed node {} BPMN type from {} to {}", nodeId, oldBpmnType, command.newType);
+                        
+                        // If changing to BusinessRuleTask, add default rule properties
+                        if ("BUSINESS_RULE_TASK".equals(command.newType)) {
+                            node.addProperty("implementation", "rule");
+                            logger.info("Set implementation property to 'rule' for BusinessRuleTask {}", nodeId);
+                        }
+                        return true;
+                    }
+                    return false;
+
                 case "update_condition":
                     if ("condition".equals(command.field)) {
                         // Update condition on outgoing edges (for gateways)
@@ -219,6 +274,44 @@ public class ProcessEditService {
                     }
                     return false;
 
+                case "update_property":
+                    // Update any node property
+                    if (StringUtils.hasText(command.field)) {
+                        node.addProperty(command.field, command.newValue);
+                        logger.info("Updated property '{}' for node {} to '{}'", command.field, nodeId, command.newValue);
+                        return true;
+                    }
+                    return false;
+
+                case "add_rule":
+                    // Add a business rule to the node
+                    if (command.ruleDetails != null) {
+                        // Store rule details as properties
+                        node.addProperty("ruleExpression", command.ruleDetails.expression);
+                        node.addProperty("ruleDescription", command.ruleDetails.description);
+                        logger.info("Added rule to node {}: {}", nodeId, command.ruleDetails.description);
+                        
+                        // If not already a BusinessRuleTask, convert it
+                        String currentBpmnType = (String) node.getProperty("bpmnType");
+                        if (!"BUSINESS_RULE_TASK".equals(currentBpmnType)) {
+                            node.addProperty("bpmnType", "BUSINESS_RULE_TASK");
+                            node.addProperty("implementation", "rule");
+                            logger.info("Converted node {} to BusinessRuleTask to support rules", nodeId);
+                        }
+                        return true;
+                    }
+                    return false;
+
+                case "add_node":
+                    // TODO: Implement node addition
+                    logger.warn("add_node action not yet implemented");
+                    return false;
+
+                case "delete_node":
+                    // TODO: Implement node deletion
+                    logger.warn("delete_node action not yet implemented");
+                    return false;
+
                 default:
                     logger.warn("Unsupported edit action: {}", command.action);
                     return false;
@@ -230,15 +323,59 @@ public class ProcessEditService {
             return false;
         }
     }
+    
+    /**
+     * Strip markdown code blocks from AI response.
+     * AI sometimes returns JSON wrapped in ```json ... ``` which breaks parsing.
+     */
+    private String stripMarkdownCodeBlocks(String response) {
+        if (response == null) {
+            return response;
+        }
+        
+        // Remove ```json ... ``` or ``` ... ``` blocks
+        String cleaned = response.trim();
+        
+        // Check if wrapped in code blocks
+        if (cleaned.startsWith("```")) {
+            // Find the first newline after opening ```
+            int firstNewline = cleaned.indexOf('\n');
+            if (firstNewline > 0) {
+                cleaned = cleaned.substring(firstNewline + 1);
+            } else {
+                cleaned = cleaned.substring(3); // Just remove ```
+            }
+            
+            // Remove closing ```
+            if (cleaned.endsWith("```")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 3);
+            }
+            
+            cleaned = cleaned.trim();
+        }
+        
+        return cleaned;
+    }
 
     /**
      * Internal class for parsing edit commands from AI response.
+     * Supports comprehensive editing operations.
      */
     private static class EditCommand {
         public String action;
         public String nodeId;
         public String newValue;
         public String field;
+        public String newType;          // For change_type action
+        public RuleDetails ruleDetails;  // For add_rule action
+    }
+    
+    /**
+     * Internal class for rule details in edit commands.
+     */
+    private static class RuleDetails {
+        public String expression;
+        public String description;
     }
     
     /**

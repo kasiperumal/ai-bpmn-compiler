@@ -13,15 +13,14 @@ class ProcessModelTest {
     
     @Test
     void testProcessModelCreation() {
-        ProcessModel process = new ProcessModel("test-001", "Test Process", "1.0.0");
+        ProcessModel process = new ProcessModel("test-001", "Test Process");
         
         assertEquals("test-001", process.getId());
         assertEquals("Test Process", process.getName());
-        assertEquals("1.0.0", process.getVersion());
+        assertEquals(1, process.getVersion());
         assertEquals(ProcessStatus.DRAFT, process.getStatus());
-        assertNotNull(process.getNodes());
-        assertNotNull(process.getEdges());
         assertNotNull(process.getRules());
+        assertNotNull(process.getMetadata());
     }
     
     @Test
@@ -95,56 +94,31 @@ class ProcessModelTest {
     @Test
     void testCompleteProcessStructure() {
         // Create process
-        ProcessModel process = new ProcessModel("order-001", "Order Processing", "1.0.0");
+        ProcessModel process = new ProcessModel("order-001", "Order Processing");
+        process.setStatus(ProcessStatus.DRAFT);
         
-        // Add nodes
-        ProcessNode start = new ProcessNode("start-1", NodeType.EVENT, "Order Received");
-        start.addProperty("eventType", "START");
-        process.addNode(start);
+        // Note: Process structure (nodes, edges) now stored in bpmnModdleJson
+        // This test validates basic process model properties
         
-        ProcessNode task = new ProcessNode("task-1", NodeType.TASK, "Validate Order");
-        task.addProperty("taskType", "SERVICE");
-        process.addNode(task);
-        
-        ProcessNode gateway = new ProcessNode("gateway-1", NodeType.GATEWAY, "Valid?");
-        gateway.addProperty("gatewayType", "EXCLUSIVE");
-        process.addNode(gateway);
-        
-        // Add edges
-        process.addEdge(new ProcessEdge("start-1", "task-1"));
-        process.addEdge(new ProcessEdge("task-1", "gateway-1"));
-        
-        // Add rule
-        RuleModel rule = new RuleModel("rule-1", "order.amount > 1000", 
-            "High value orders");
-        process.addRule(rule);
+        String sampleBpmnJson = "{\"$type\":\"bpmn:Process\",\"id\":\"Process_001\",\"flowElements\":[]}";
+        process.setBpmnModdleJson(sampleBpmnJson);
         
         // Verify
-        assertEquals(3, process.getNodes().size());
-        assertEquals(2, process.getEdges().size());
-        assertEquals(1, process.getRules().size());
+        assertEquals("order-001", process.getId());
+        assertEquals("Order Processing", process.getName());
+        assertEquals(ProcessStatus.DRAFT, process.getStatus());
+        assertNotNull(process.getBpmnModdleJson());
+        assertNotNull(process.getMetadata());
     }
     
     @Test
     void testJsonSerialization() throws Exception {
         // Create a complete process
-        ProcessModel process = new ProcessModel("json-test", "JSON Test Process", "1.0.0");
+        ProcessModel process = new ProcessModel("json-test", "JSON Test Process");
         process.setStatus(ProcessStatus.PUBLISHED);
         
-        ProcessNode node = new ProcessNode("node-1", NodeType.TASK, "Test Task");
-        node.addProperty("key1", "value1");
-        
-        Explanation explanation = new Explanation("node-1", "Test explanation");
-        explanation.setConfidenceScore(0.9);
-        node.setExplanation(explanation);
-        
-        Approval approval = new Approval("node-1", true, true);
-        approval.setApprovedBy("tester");
-        node.setApproval(approval);
-        
-        process.addNode(node);
-        process.addEdge(new ProcessEdge("node-1", "node-2", "condition"));
-        process.addRule(new RuleModel("rule-1", "expr", "desc"));
+        // Note: ProcessNode, Explanation, Approval are now stored in bpmnModdleJson
+        // This test now validates basic process model serialization only
         
         // Serialize to JSON
         String json = objectMapper.writeValueAsString(process);
@@ -158,9 +132,7 @@ class ProcessModelTest {
         assertEquals(process.getId(), deserialized.getId());
         assertEquals(process.getName(), deserialized.getName());
         assertEquals(process.getStatus(), deserialized.getStatus());
-        assertEquals(1, deserialized.getNodes().size());
-        assertEquals(1, deserialized.getEdges().size());
-        assertEquals(1, deserialized.getRules().size());
+        assertNotNull(deserialized.getMetadata());
     }
 }
 

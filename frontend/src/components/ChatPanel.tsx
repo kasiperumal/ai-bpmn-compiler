@@ -40,21 +40,24 @@ interface ChatPanelProps {
 
 interface Message {
   id: string
-  type: 'user' | 'assistant' | 'system'
+  type: 'user' | 'assistant' | 'system' | 'questions'
   content: string
   timestamp: Date
-  streaming?: boolean
+  questions?: string[]
+  answers?: Map<number, string>
 }
 
-interface Question {
-  id: string
-  question: string
+// Unique ID generator for messages to avoid duplicate keys
+let messageIdCounter = 0
+const generateMessageId = () => {
+  messageIdCounter++
+  return `msg-${Date.now()}-${messageIdCounter}`
 }
 
 const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId }: ChatPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: '1',
+      id: 'initial-1',
       type: 'system',
       content: 'Welcome to the AI BPMN Compiler! Describe your business process in natural language, and I will help you create a BPMN diagram.',
       timestamp: new Date()
@@ -63,10 +66,13 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [currentProcessId, setCurrentProcessId] = useState<string | null>(null)
-  const [pendingQuestions, setPendingQuestions] = useState<Question[]>([])
-  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const abortControllerRef = useRef<AbortController | null>(null)
+  
+  // Interactive conversation state
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [conversationPhase, setConversationPhase] = useState<'CLARIFYING' | 'READY' | 'GENERATING' | 'COMPLETED' | null>(null)
+  const [currentQuestions, setCurrentQuestions] = useState<string[]>([])
+  const [currentAnswers, setCurrentAnswers] = useState<Map<number, string>>(new Map())
 
   // Update current process ID when prop changes
   useEffect(() => {
@@ -83,50 +89,30 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
     scrollToBottom()
   }, [messages])
 
-  const addMessage = (type: 'user' | 'assistant' | 'system', content: string, streaming: boolean = false) => {
+  const addMessage = (
+    type: 'user' | 'assistant' | 'system' | 'questions', 
+    content: string, 
+    timestamp?: Date,
+    questions?: string[]
+  ) => {
     const newMessage: Message = {
-      id: Date.now().toString(),
+      id: generateMessageId(),
       type,
       content,
-      timestamp: new Date(),
-      streaming
+      timestamp: timestamp || new Date(),
+      questions: questions
     }
     setMessages(prev => [...prev, newMessage])
     return newMessage.id
   }
 
-  const updateStreamingMessage = (id: string, content: string) => {
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === id 
-          ? { ...msg, content, streaming: true }
-          : msg
-      )
-    )
-  }
 
-  const finalizeStreamingMessage = (id: string) => {
-    setMessages(prev => 
-      prev.map(msg => 
-        msg.id === id 
-          ? { ...msg, streaming: false }
-          : msg
-      )
-    )
-    setStreamingMessageId(null)
-  }
-
-  const detectEditIntent = (message: string): boolean => {
-    const editKeywords = [
-      'rename', 'change', 'update', 'modify', 'edit', 'set',
-      'call it', 'name it', 'change to', 'update to',
-      'condition', 'description'
-    ]
-    
-    const lowerMessage = message.toLowerCase()
-    return editKeywords.some(keyword => lowerMessage.includes(keyword)) && 
-           (selectedElement !== null || lowerMessage.includes('selected') || lowerMessage.includes('this'))
-  }
+  // ═══════════════════════════════════════════════════════════════════════
+  // UNIFIED CHAT MESSAGE HANDLER
+  // ═══════════════════════════════════════════════════════════════════════
+  // All messages now go through /api/chat/message endpoint.
+  // AI handles intent detection - no more frontend keyword matching!
+  // ═══════════════════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════════════════
   // EDIT INTENT HANDLER: All Edits Through Canonical Model
@@ -154,100 +140,163 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
   // NEVER attempt to modify BPMN directly in the frontend!
   // ═══════════════════════════════════════════════════════════════════════
   
-  const handleEditIntent = async (instruction: string) => {
-    if (!currentProcessId) {
-      addMessage('system', 'Please create or load a process first before editing.')
-      return
-    }
-
-    try {
-      console.info('[Edit Intent] Sending instruction to canonical model API:', instruction)
-      
-      // Send edit instruction to backend (canonical model API)
-      const response = await axios.post(
-        `http://localhost:8080/api/process/${currentProcessId}/edit-intent`,
-        {
-          instruction,
-          nodeId: selectedElement?.id || null
-        }
-      )
-
-      if (response.data.success) {
-        console.info('[Edit Intent] Canonical model updated, BPMN regenerated')
-        addMessage('assistant', `✅ Edit applied successfully! ${response.data.message}`)
-        addMessage('system', 'The BPMN diagram has been regenerated from canonical model. Refreshing...')
-        
-        // Reload to display freshly generated BPMN from canonical model
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-      } else {
-        console.warn('[Edit Intent] Edit failed:', response.data.message)
-        addMessage('assistant', `❌ Edit failed: ${response.data.message}`)
-      }
-    } catch (err: any) {
-      console.error('[Edit Intent] Error updating canonical model:', err)
-      addMessage('system', `Error applying edit: ${err.response?.data?.message || err.message}`)
-    }
+  // ═══════════════════════════════════════════════════════════════════════
+  // INTERACTIVE CONVERSATION HANDLERS
+  // ═══════════════════════════════════════════════════════════════════════
+  
+  const handleAnswerUpdate = (questionIndex: number, answer: string) => {
+    setCurrentAnswers(prev => {
+      const updated = new Map(prev)
+      updated.set(questionIndex, answer)
+      return updated
+    })
   }
 
-  const streamAIResponse = async (endpoint: string, payload: any): Promise<string> => {
-    // Create abort controller for this request
-    abortControllerRef.current = new AbortController()
+  const handleSubmitAnswers = async () => {
+    if (!conversationId) return
     
-    // Create streaming message
-    const messageId = addMessage('assistant', '', true)
-    setStreamingMessageId(messageId)
-    
-    let fullContent = ''
-
+    setLoading(true)
     try {
-      const response = await fetch(`http://localhost:8080${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: abortControllerRef.current.signal
+      // Build Q&A pairs
+      const questionsAndAnswers = currentQuestions.map((q, idx) => ({
+        question: q,
+        answer: currentAnswers.get(idx) || ''
+      }))
+
+      const response = await axios.post('http://localhost:8080/api/process/interactive/answer', {
+        conversationId,
+        questionsAndAnswers
       })
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+      const { phase, questions, message } = response.data
+      
+      setConversationPhase(phase)
+      addMessage('assistant', message)
+
+      if (phase === 'CLARIFYING' && questions && questions.length > 0) {
+        // More questions to answer
+        setCurrentQuestions(questions)
+        setCurrentAnswers(new Map())
+        addMessage('questions', '', new Date(), questions)
+      } else if (phase === 'READY') {
+        // Ready to generate BPMN
+        setCurrentQuestions([])
+        setCurrentAnswers(new Map())
       }
-
-      const reader = response.body?.getReader()
-      const decoder = new TextDecoder()
-
-      if (!reader) {
-        throw new Error('Response body is not readable')
-      }
-
-      while (true) {
-        const { done, value } = await reader.read()
-        
-        if (done) break
-
-        const chunk = decoder.decode(value, { stream: true })
-        fullContent += chunk
-        
-        // Update the streaming message
-        updateStreamingMessage(messageId, fullContent)
-      }
-
-      finalizeStreamingMessage(messageId)
-      return fullContent
-
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
-        finalizeStreamingMessage(messageId)
-        addMessage('system', 'Response streaming was cancelled.')
-      } else {
-        finalizeStreamingMessage(messageId)
-        throw error
-      }
-      return fullContent
+    } catch (err: any) {
+      console.error('Error submitting answers:', err)
+      addMessage('system', `Error submitting answers: ${err.response?.data?.message || err.message}`)
+    } finally {
+      setLoading(false)
     }
   }
+
+  const handleGenerateBpmn = async () => {
+    if (!conversationId) return
+    
+    setLoading(true)
+    addMessage('system', 'Generating BPMN diagram from your answers...')
+    
+    try {
+      const response = await axios.post(`http://localhost:8080/api/process/interactive/generate/${conversationId}`)
+      
+      const { processId, message } = response.data
+      
+      setCurrentProcessId(processId)
+      setConversationPhase('COMPLETED')
+      setConversationId(null)
+      
+      if (onProcessCreated) {
+        onProcessCreated(processId)
+      }
+
+      addMessage('assistant', `✅ ${message}`)
+      addMessage('system', 'You can now view your BPMN diagram in the diagram panel!')
+    } catch (err: any) {
+      console.error('Error generating BPMN:', err)
+      addMessage('system', `Error generating BPMN: ${err.response?.data?.message || err.message}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  /**
+   * Unified message handler - sends all messages to /api/chat/message
+   * AI determines intent and routes to appropriate action
+   */
+  const handleUnifiedMessage = async (message: string) => {
+    try {
+      console.info('[Unified Chat] Sending message to AI:', message)
+      
+      // Build request with all available context
+      const request = {
+        message: message,
+        processId: currentProcessId || undefined,
+        selectedElementId: selectedElement?.id || undefined,
+        conversationId: conversationId || undefined
+      }
+      
+      // Send to unified chat endpoint
+      const response = await axios.post('http://localhost:8080/api/chat/message', request)
+      
+      const { intent, action, message: responseMessage, processId: newProcessId, requiresRefresh, questions, conversationId: newConvId, success } = response.data
+      
+      console.info('[Unified Chat] Response:', { intent, action, success })
+      
+      if (!success) {
+        addMessage('assistant', `❌ ${responseMessage}`)
+        return
+      }
+      
+      // Handle response based on action type
+      switch (action) {
+        case 'EDIT_APPLIED':
+          addMessage('assistant', `✅ ${responseMessage}`)
+          if (requiresRefresh) {
+            addMessage('system', 'Diagram updated! Refreshing...')
+            setTimeout(() => window.location.reload(), 1500)
+          }
+          break
+          
+        case 'PROCESS_CREATED':
+          addMessage('assistant', `✅ ${responseMessage}`)
+          if (newProcessId) {
+            setCurrentProcessId(newProcessId)
+            if (onProcessCreated) {
+              onProcessCreated(newProcessId)
+            }
+          }
+          if (requiresRefresh) {
+            addMessage('system', 'Loading your new BPMN diagram...')
+            setTimeout(() => window.location.reload(), 1500)
+          }
+          break
+          
+        case 'CLARIFICATION_NEEDED':
+          addMessage('assistant', responseMessage)
+          if (questions && questions.length > 0) {
+            setConversationId(newConvId)
+            setConversationPhase('CLARIFYING') // Enable input boxes
+            setCurrentQuestions(questions)
+            setCurrentAnswers(new Map())
+            addMessage('questions', '', new Date(), questions)
+          }
+          break
+          
+        case 'INFORMATION_PROVIDED':
+          addMessage('assistant', responseMessage)
+          break
+          
+        default:
+          addMessage('assistant', responseMessage)
+      }
+      
+    } catch (err: any) {
+      console.error('[Unified Chat] Error:', err)
+      addMessage('system', `Error: ${err.response?.data?.message || err.message}`)
+    }
+  }
+
 
   const handleSend = async () => {
     if (!inputValue.trim()) return
@@ -258,111 +307,23 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
     setLoading(true)
 
     try {
-      // Check for edit intent if a process exists
-      if (currentProcessId && detectEditIntent(userMessage)) {
-        // Show context if element is selected
-        if (selectedElement) {
-          addMessage('system', `Editing: ${selectedElement.businessObject?.name || selectedElement.id} (${selectedElement.type})`)
-        }
-        
-        await handleEditIntent(userMessage)
-        setLoading(false)
-        return
+      // Show context if element is selected
+      if (selectedElement) {
+        const elementName = selectedElement.businessObject?.name || selectedElement.id
+        addMessage('system', `Context: Selected "${elementName}" (${selectedElement.type})`)
       }
-
-      if (!currentProcessId) {
-        // Start a new process
-        addMessage('system', 'Creating your process...')
-        
-        // Try streaming if backend supports it
-        try {
-          await streamAIResponse('/api/process/start', {
-            description: userMessage
-          })
-        } catch (streamErr) {
-          console.warn('Streaming not available, falling back to regular request')
-          
-          const response = await axios.post('http://localhost:8080/api/process/start', {
-            description: userMessage
-          })
-          
-          const processId = response.data.processId
-          setCurrentProcessId(processId)
-          
-          if (onProcessCreated) {
-            onProcessCreated(processId)
-          }
-
-          addMessage('system', `Process created with ID: ${processId}`)
-          addMessage('assistant', 'I\'ve started analyzing your process description. I will create a BPMN diagram based on your requirements.')
-          
-          // Check for clarification questions
-          checkForQuestions(processId)
-        }
-      } else {
-        // Check if we have pending questions
-        if (pendingQuestions.length > 0) {
-          // Answer the first pending question
-          const question = pendingQuestions[0]
-          await axios.post(`http://localhost:8080/api/process/${currentProcessId}/answer`, {
-            questionId: question.id,
-            answer: userMessage
-          })
-          
-          setPendingQuestions(prev => prev.slice(1))
-          addMessage('assistant', 'Thank you for the clarification.')
-          
-          // Check if there are more questions
-          if (pendingQuestions.length > 1) {
-            addMessage('assistant', pendingQuestions[1].question)
-          } else {
-            addMessage('assistant', 'Processing your answers...')
-            // Resume the process
-            await axios.post(`http://localhost:8080/api/process/${currentProcessId}/resume`)
-            checkForQuestions(currentProcessId)
-          }
-        } else {
-          // General conversation - provide helpful response
-          if (selectedElement) {
-            addMessage('assistant', 
-              `I see you have selected "${selectedElement.businessObject?.name || selectedElement.id}". ` +
-              `You can ask me to rename it, update its condition, or modify its description. ` +
-              `For example: "Rename this to 'Approve Request'" or "Change condition to amount > 5000"`
-            )
-          } else {
-            addMessage('assistant', 
-              'I can help you refine the process or edit specific elements. ' +
-              'Select an element in the diagram and tell me what you\'d like to change.'
-            )
-          }
-        }
-      }
+      
+      // Send all messages to unified endpoint - AI determines intent!
+      await handleUnifiedMessage(userMessage)
+      
     } catch (err: any) {
-      console.error('Error sending message:', err)
+      console.error('[Chat] Error sending message:', err)
       addMessage('system', `Error: ${err.response?.data?.message || err.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-  const checkForQuestions = async (processId: string) => {
-    try {
-      // Poll for questions
-      const response = await axios.get(`http://localhost:8080/api/process/${processId}/questions`)
-      
-      if (response.data && response.data.length > 0) {
-        setPendingQuestions(response.data)
-        addMessage('assistant', response.data[0].question)
-      } else {
-        // No questions, process is complete or in progress
-        addMessage('assistant', 'Your process has been created! You can view it in the diagram panel and publish it when ready.')
-      }
-    } catch (err: any) {
-      console.error('Error checking for questions:', err)
-      // If there's an error, assume process is complete
-      addMessage('assistant', 'Your process has been created! You can view it in the diagram panel and publish it when ready.')
-    }
-  }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -373,10 +334,13 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
 
   const handleNewProcess = () => {
     setCurrentProcessId(null)
-    setPendingQuestions([])
+    setConversationId(null)
+    setConversationPhase(null)
+    setCurrentQuestions([])
+    setCurrentAnswers(new Map())
     setMessages([
       {
-        id: Date.now().toString(),
+        id: generateMessageId(),
         type: 'system',
         content: 'Starting a new process. Please describe your business process.',
         timestamp: new Date()
@@ -387,12 +351,6 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
     }
   }
 
-  const stopStreaming = () => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-      abortControllerRef.current = null
-    }
-  }
 
   return (
     <div className="chat-panel">
@@ -420,22 +378,70 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
       
       <div className="chat-messages">
         {messages.map(msg => (
-          <div key={msg.id} className={`message message-${msg.type} ${msg.streaming ? 'streaming' : ''}`}>
+          <div key={msg.id} className={`message message-${msg.type}`}>
             <div className="message-avatar">
-              {msg.type === 'user' ? '👤' : msg.type === 'assistant' ? '🤖' : 'ℹ️'}
+              {msg.type === 'user' ? '👤' : msg.type === 'assistant' ? '🤖' : msg.type === 'questions' ? '❓' : 'ℹ️'}
             </div>
             <div className="message-content">
-              <div className="message-text">
-                {msg.content}
-                {msg.streaming && <span className="streaming-cursor">▊</span>}
-              </div>
-              <div className="message-time">
-                {msg.timestamp.toLocaleTimeString()}
-              </div>
+              {msg.type === 'questions' && msg.questions ? (
+                <div className="questions-container">
+                  <div className="questions-title">Please answer these questions:</div>
+                  {msg.questions.map((question, idx) => (
+                    <div key={idx} className="question-item">
+                      <label className="question-label">
+                        {idx + 1}. {question}
+                      </label>
+                      <textarea
+                        className="question-input"
+                        placeholder="Your answer..."
+                        value={currentAnswers.get(idx) || ''}
+                        onChange={(e) => handleAnswerUpdate(idx, e.target.value)}
+                        disabled={loading || conversationPhase !== 'CLARIFYING'}
+                        rows={2}
+                      />
+                    </div>
+                  ))}
+                  {conversationPhase === 'CLARIFYING' && (
+                    <button 
+                      className="submit-answers-button"
+                      onClick={handleSubmitAnswers}
+                      disabled={loading || Array.from(currentAnswers.values()).some(a => !a.trim())}
+                    >
+                      Submit Answers
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="message-text">
+                    {msg.content}
+                  </div>
+                  <div className="message-time">
+                    {msg.timestamp.toLocaleTimeString()}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ))}
-        {loading && !streamingMessageId && (
+        
+        {/* Generate BPMN button when ready */}
+        {conversationPhase === 'READY' && (
+          <div className="message message-system">
+            <div className="message-avatar">✅</div>
+            <div className="message-content">
+              <button 
+                className="generate-bpmn-button"
+                onClick={handleGenerateBpmn}
+                disabled={loading}
+              >
+                🚀 Generate BPMN Diagram
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {loading && (
           <div className="message message-assistant">
             <div className="message-avatar">🤖</div>
             <div className="message-content">
@@ -451,22 +457,14 @@ const ChatPanel = ({ onProcessCreated, selectedElement, processId: propProcessId
       </div>
       
       <div className="chat-input-container">
-        {streamingMessageId && (
-          <button 
-            onClick={stopStreaming}
-            className="btn-stop-streaming"
-          >
-            ⏸ Stop
-          </button>
-        )}
         <textarea
           className="chat-input"
           placeholder={
             selectedElement 
               ? `Edit "${selectedElement.businessObject?.name || selectedElement.id}"...`
-              : pendingQuestions.length > 0 
-                ? "Answer the question..." 
-                : "Describe your process or edit an element..."
+              : currentProcessId
+                ? "Describe changes to your process or select an element to edit..."
+                : "Describe your business process..."
           }
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}

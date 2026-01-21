@@ -31,6 +31,7 @@ import axios from 'axios'
 interface PropertiesPanelProps {
   selectedElement?: any
   processId?: string
+  onClose?: () => void
 }
 
 interface ProcessInfo {
@@ -51,7 +52,7 @@ interface Explanation {
   timestamp: string
 }
 
-const PropertiesPanel = ({ selectedElement, processId }: PropertiesPanelProps) => {
+const PropertiesPanel = ({ selectedElement, processId, onClose }: PropertiesPanelProps) => {
   const [processInfo, setProcessInfo] = useState<ProcessInfo | null>(null)
   const [explanations, setExplanations] = useState<Explanation[]>([])
   const [loading, setLoading] = useState(false)
@@ -99,40 +100,6 @@ const PropertiesPanel = ({ selectedElement, processId }: PropertiesPanelProps) =
     }
   }
 
-  const handlePublish = async () => {
-    if (!processId) return
-    
-    setLoading(true)
-    setError(null)
-    try {
-      await axios.post(`http://localhost:8080/api/process/${processId}/publish`)
-      await fetchProcessInfo()
-      alert('Process published successfully!')
-    } catch (err: any) {
-      console.error('Error publishing process:', err)
-      setError(err.response?.data?.message || 'Failed to publish process')
-      alert('Failed to publish process: ' + (err.response?.data?.message || err.message))
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleExecute = async () => {
-    if (!processId) return
-    
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await axios.post(`http://localhost:8080/api/process/${processId}/execute`, {})
-      alert(`Process instance started: ${response.data.instanceId}`)
-    } catch (err: any) {
-      console.error('Error executing process:', err)
-      setError(err.response?.data?.message || 'Failed to execute process')
-      alert('Failed to execute process: ' + (err.response?.data?.message || err.message))
-    } finally {
-      setLoading(false)
-    }
-  }
 
   // ═══════════════════════════════════════════════════════════════════════
   // EDIT SUBMISSION: Through Canonical Model Only
@@ -251,6 +218,13 @@ const PropertiesPanel = ({ selectedElement, processId }: PropertiesPanelProps) =
     <div className="properties-panel">
       <div className="properties-header">
         <h2>Properties</h2>
+        {onClose && (
+          <button onClick={onClose} className="btn-close" title="Close Properties Panel">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
       </div>
       
       <div className="properties-content">
@@ -290,23 +264,6 @@ const PropertiesPanel = ({ selectedElement, processId }: PropertiesPanelProps) =
             <div className="property-item">
               <label>Updated:</label>
               <span>{new Date(processInfo.updatedAt).toLocaleString()}</span>
-            </div>
-            
-            <div className="properties-actions">
-              <button 
-                onClick={handlePublish}
-                disabled={loading || processInfo.aiState === 'PUBLISHED'}
-                className="btn-primary"
-              >
-                {processInfo.aiState === 'PUBLISHED' ? 'Published' : 'Publish'}
-              </button>
-              <button 
-                onClick={handleExecute}
-                disabled={loading || processInfo.aiState !== 'PUBLISHED'}
-                className="btn-secondary"
-              >
-                Execute
-              </button>
             </div>
           </div>
         )}

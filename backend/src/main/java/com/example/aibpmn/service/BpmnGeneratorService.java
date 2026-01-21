@@ -12,6 +12,9 @@ import java.util.stream.Collectors;
 /**
  * Service for generating BPMN 2.0 XML from ProcessModel.
  * Creates Kogito-compatible, executable BPMN processes.
+ * 
+ * LAYOUT STRATEGY: Minimal bounds provided by backend, BPMN.js calculates
+ * all positions and routing automatically to prevent overlaps.
  */
 @Service
 public class BpmnGeneratorService {
@@ -38,6 +41,9 @@ public class BpmnGeneratorService {
         
         logger.info("Generating BPMN for process: {} (nodes: {}, edges: {})",
             processModel.getId(), processModel.getNodes().size(), processModel.getEdges().size());
+        
+        // Store reference for gateway generation
+        this.currentProcessModel = processModel;
         
         // Validate model
         validateModel(processModel);
@@ -258,7 +264,8 @@ public class BpmnGeneratorService {
     }
     
     /**
-     * Generate BPMN gateway element.
+     * Generate BPMN gateway element with proper flow references and direction.
+     * Includes incoming/outgoing flow references for BPMN 2.0 compliance.
      */
     private void generateGateway(StringBuilder xml, ProcessNode node) {
         String gatewayType = (String) node.getProperties().get("gatewayType");
@@ -274,11 +281,75 @@ public class BpmnGeneratorService {
         
         xml.append("id=\"").append(escapeXml(node.getId())).append("\" ");
         xml.append("name=\"").append(escapeXml(node.getName())).append("\" ");
-        xml.append("/>\n");
+        
+        // CRITICAL: isMarkerVisible must be true for gateway symbols (X, +, O) to appear
+        xml.append("isMarkerVisible=\"true\" ");
+        
+        // Determine gateway direction based on flow counts
+        List<String> incomingFlows = new ArrayList<>();
+        List<String> outgoingFlows = new ArrayList<>();
+        
+        // Find all flows connected to this gateway
+        for (ProcessEdge edge : getCurrentProcessModel().getEdges()) {
+            if (edge.getToNodeId().equals(node.getId())) {
+                incomingFlows.add(edge.getId());
+            }
+            if (edge.getFromNodeId().equals(node.getId())) {
+                outgoingFlows.add(edge.getId());
+            }
+        }
+        
+        // Set gateway direction
+        if (outgoingFlows.size() > 1 && incomingFlows.size() == 1) {
+            xml.append("gatewayDirection=\"Diverging\" ");
+        } else if (incomingFlows.size() > 1 && outgoingFlows.size() == 1) {
+            xml.append("gatewayDirection=\"Converging\" ");
+        } else if (incomingFlows.size() > 1 && outgoingFlows.size() > 1) {
+            xml.append("gatewayDirection=\"Mixed\" ");
+        } else {
+            xml.append("gatewayDirection=\"Diverging\" "); // Default
+        }
+        
+        // Close opening tag and add flow references
+        xml.append(">\n");
+        
+        // Add incoming flow references
+        for (String flowId : incomingFlows) {
+            xml.append("      <bpmn2:incoming>").append(escapeXml(flowId)).append("</bpmn2:incoming>\n");
+        }
+        
+        // Add outgoing flow references
+        for (String flowId : outgoingFlows) {
+            xml.append("      <bpmn2:outgoing>").append(escapeXml(flowId)).append("</bpmn2:outgoing>\n");
+        }
+        
+        // Close gateway element
+        if ("parallel".equals(gatewayType)) {
+            xml.append("    </bpmn2:parallelGateway>\n");
+        } else if ("inclusive".equals(gatewayType)) {
+            xml.append("    </bpmn2:inclusiveGateway>\n");
+        } else {
+            xml.append("    </bpmn2:exclusiveGateway>\n");
+        }
+    }
+    
+    /**
+     * Helper to get current ProcessModel being processed.
+     * Used by generateGateway to access edges.
+     */
+    private ProcessModel currentProcessModel;
+    
+    private ProcessModel getCurrentProcessModel() {
+        return currentProcessModel;
     }
     
     /**
      * Generate BPMN sequence flow element.
+     * 
+     * INDUSTRY STANDARD LABELING:
+     * - Only conditional flows (gateway branches) have visible labels
+     * - Sequential flows (simple connections) have no labels
+     * - This prevents label clutter and matches professional BPMN tools (Camunda, Signavio)
      */
     private void generateEdge(StringBuilder xml, ProcessEdge edge, ProcessModel processModel) {
         xml.append("    <bpmn2:sequenceFlow ");
@@ -286,13 +357,19 @@ public class BpmnGeneratorService {
         xml.append("sourceRef=\"").append(escapeXml(edge.getFromNodeId())).append("\" ");
         xml.append("targetRef=\"").append(escapeXml(edge.getToNodeId())).append("\"");
         
-        // Add name/label if present
-        if (edge.getLabel() != null && !edge.getLabel().trim().isEmpty()) {
+        // INDUSTRY STANDARD: Only add labels to conditional flows (gateway branches)
+        // Sequential flows should be label-free for clean diagrams
+        boolean hasCondition = edge.getCondition() != null && !edge.getCondition().trim().isEmpty();
+        boolean hasLabel = edge.getLabel() != null && !edge.getLabel().trim().isEmpty();
+        
+        if (hasCondition && hasLabel) {
+            // Conditional flow with label - add short label for branch identification
             xml.append(" name=\"").append(escapeXml(edge.getLabel())).append("\"");
         }
+        // Note: Sequential flows (no condition) get NO label, even if label text exists
         
         // Add condition expression for conditional flows
-        if (edge.getCondition() != null && !edge.getCondition().trim().isEmpty()) {
+        if (hasCondition) {
             xml.append(">\n");
             xml.append("      <bpmn2:conditionExpression xsi:type=\"bpmn2:tFormalExpression\">");
             xml.append(escapeXml(edge.getCondition()));
@@ -304,43 +381,101 @@ public class BpmnGeneratorService {
     }
     
     /**
-     * Generate BPMN diagram element (for visualization).
+     * Generate BPMN diagram element with minimal bounds.
+     * BPMN.js will automatically calculate optimal layout and connection routing.
+     * 
+     * STRATEGY: Backend provides only element types and dimensions, frontend (BPMN.js) 
+     * handles all positioning and routing to avoid overlap issues.
      */
     private void generateDiagram(StringBuilder xml, ProcessModel processModel) {
         xml.append("  <bpmndi:BPMNDiagram id=\"BPMNDiagram_").append(processModel.getId()).append("\">\n");
         xml.append("    <bpmndi:BPMNPlane id=\"BPMNPlane_").append(processModel.getId()).append("\" ");
         xml.append("bpmnElement=\"").append(escapeXml(processModel.getId())).append("\">\n");
         
-        // Generate shapes for nodes (with auto-layout)
-        int x = 100;
-        int y = 100;
-        int xSpacing = 200;
-        int ySpacing = 100;
-        int column = 0;
-        
+        // Generate shapes for nodes with standard dimensions
+        // BPMN.js will calculate actual positions during rendering
         for (ProcessNode node : processModel.getNodes()) {
             xml.append("      <bpmndi:BPMNShape id=\"Shape_").append(node.getId()).append("\" ");
             xml.append("bpmnElement=\"").append(escapeXml(node.getId())).append("\">\n");
-            xml.append("        <dc:Bounds x=\"").append(x + (column * xSpacing)).append("\" ");
-            xml.append("y=\"").append(y).append("\" ");
-            xml.append("width=\"100\" height=\"80\" />\n");
-            xml.append("      </bpmndi:BPMNShape>\n");
             
-            column++;
-            if (column > 3) {
-                column = 0;
-                y += ySpacing;
+            // Provide standard dimensions based on element type
+            // Position (x, y) will be auto-calculated by BPMN.js
+            int width = getNodeWidth(node);
+            int height = getNodeHeight(node);
+            
+            xml.append("        <dc:Bounds x=\"0\" y=\"0\" ");
+            xml.append("width=\"").append(width).append("\" ");
+            xml.append("height=\"").append(height).append("\" />\n");
+            
+            // Add label if present
+            if (node.getName() != null && !node.getName().isEmpty()) {
+                xml.append("        <bpmndi:BPMNLabel />\n");
             }
+            
+            xml.append("      </bpmndi:BPMNShape>\n");
         }
         
-        // Generate edges for sequence flows
+        // Generate edges without waypoints
+        // BPMN.js will calculate optimal routing to avoid overlaps
         for (ProcessEdge edge : processModel.getEdges()) {
             xml.append("      <bpmndi:BPMNEdge id=\"Edge_").append(edge.getId()).append("\" ");
-            xml.append("bpmnElement=\"").append(escapeXml(edge.getId())).append("\" />\n");
+            xml.append("bpmnElement=\"").append(escapeXml(edge.getId())).append("\">\n");
+            
+            // NO WAYPOINTS - Let BPMN.js calculate optimal routing
+            // This ensures connections never overlap with elements
+            
+            // Add empty label element ONLY for conditional flows (with labels)
+            // BPMN.js auto-positions labels to prevent overlap
+            // Sequential flows have no labels (industry standard)
+            boolean hasCondition = edge.getCondition() != null && !edge.getCondition().trim().isEmpty();
+            boolean hasLabel = edge.getLabel() != null && !edge.getLabel().trim().isEmpty();
+            if (hasCondition && hasLabel) {
+                xml.append("        <bpmndi:BPMNLabel />\n");
+            }
+            
+            xml.append("      </bpmndi:BPMNEdge>\n");
         }
         
         xml.append("    </bpmndi:BPMNPlane>\n");
         xml.append("  </bpmndi:BPMNDiagram>\n");
+    }
+    
+    /**
+     * Get standard width for a node based on type.
+     */
+    private int getNodeWidth(ProcessNode node) {
+        if (node.getType() == null) {
+            return 120; // Default task width
+        }
+        
+        switch (node.getType()) {
+            case EVENT:
+                return 36;
+            case GATEWAY:
+                return 50;
+            case TASK:
+            default:
+                return 120;
+        }
+    }
+    
+    /**
+     * Get standard height for a node based on type.
+     */
+    private int getNodeHeight(ProcessNode node) {
+        if (node.getType() == null) {
+            return 80; // Default task height
+        }
+        
+        switch (node.getType()) {
+            case EVENT:
+                return 36;
+            case GATEWAY:
+                return 50;
+            case TASK:
+            default:
+                return 80;
+        }
     }
     
     /**

@@ -11,6 +11,13 @@ import java.util.List;
  */
 public class ReasoningResult {
     
+    // NEW: BPMN Moddle JSON (primary output)
+    private String bpmnModdleJson;
+    private String processName;
+    private String overallExplanation;
+    private String drlFileName; // Suggested DRL filename (e.g., "LeaveValidationRules.drl")
+    
+    // LEGACY: For backward compatibility (deprecated)
     private List<ProcessNode> nodes;
     private List<ProcessEdge> edges;
     private List<RuleModel> rules;
@@ -28,6 +35,38 @@ public class ReasoningResult {
     }
     
     // Getters and Setters
+    
+    public String getBpmnModdleJson() {
+        return bpmnModdleJson;
+    }
+    
+    public void setBpmnModdleJson(String bpmnModdleJson) {
+        this.bpmnModdleJson = bpmnModdleJson;
+    }
+    
+    public String getProcessName() {
+        return processName;
+    }
+    
+    public void setProcessName(String processName) {
+        this.processName = processName;
+    }
+    
+    public String getOverallExplanation() {
+        return overallExplanation;
+    }
+    
+    public void setOverallExplanation(String overallExplanation) {
+        this.overallExplanation = overallExplanation;
+    }
+    
+    public String getDrlFileName() {
+        return drlFileName;
+    }
+    
+    public void setDrlFileName(String drlFileName) {
+        this.drlFileName = drlFileName;
+    }
     
     public List<ProcessNode> getNodes() {
         return nodes;

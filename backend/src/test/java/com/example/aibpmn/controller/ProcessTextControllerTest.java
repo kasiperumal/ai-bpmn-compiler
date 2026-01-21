@@ -98,31 +98,7 @@ class ProcessTextControllerTest {
             .andExpect(jsonPath("$.message").exists());
     }
     
-    @Test
-    void testGetTextDescriptionSuccess() throws Exception {
-        // Arrange
-        String processId = "proc-12345678";
-        String description = "Test process description";
-        
-        when(textService.getTextDescription(processId)).thenReturn(description);
-        
-        // Act & Assert
-        mockMvc.perform(get("/api/process/{processId}/text", processId))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.processId").value(processId))
-            .andExpect(jsonPath("$.description").value(description));
-    }
-    
-    @Test
-    void testGetTextDescriptionNotFound() throws Exception {
-        // Arrange
-        String processId = "nonexistent-id";
-        
-        when(textService.getTextDescription(processId)).thenReturn(null);
-        
-        // Act & Assert
-        mockMvc.perform(get("/api/process/{processId}/text", processId))
-            .andExpect(status().isNotFound());
-    }
+    // Note: getTextDescription() tests removed as the method was deprecated
+    // Text descriptions are now stored in ProcessModel.bpmnModdleJson
 }
 

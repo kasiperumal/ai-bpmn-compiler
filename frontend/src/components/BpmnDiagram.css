@@ -1,9 +1,36 @@
-.bpmn-diagram-container {
+/* ═══════════════════════════════════════════════════════════════════════════
+   BPMN Diagram Viewer - Corporate Monochrome Documentation Style
+   ═══════════════════════════════════════════════════════════════════════════
+   
+   Design Philosophy:
+   - Pure black & white (#000000 + #FFFFFF)
+   - Clean, professional documentation style
+   - Print-ready for specifications and technical docs
+   - No shadows, gradients, or visual effects
+   - Orthogonal (90°) edge routing
+   - BPMN 2.0 standard compliance
+   
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ────────────────────────────────────────────────────────────────────────
+   Container & Layout
+   ──────────────────────────────────────────────────────────────────────── */
+
+.bpmn-diagram-container,
+.bpmn-modeler-container {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
   position: relative;
+  background-color: #ffffff; /* Pure white */
+}
+
+.bpmn-content {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
 }
 
 .bpmn-toolbar {
@@ -11,15 +38,17 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-bottom: 2px solid #000000; /* Pure black border */
 }
 
 .bpmn-toolbar h2 {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #000000;
+  letter-spacing: -0.02em;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .toolbar-actions {
@@ -29,28 +58,102 @@
 
 .toolbar-actions button {
   padding: 0.4rem 0.8rem;
-  background-color: white;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0; /* Sharp corners for documentation style */
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
+  font-size: 0.875rem;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 500;
+  color: #000000;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .toolbar-actions button:hover {
-  background-color: #f1f5f9;
-  border-color: #94a3b8;
+  background-color: #000000;
+  color: #ffffff;
 }
 
 .toolbar-actions button:active {
-  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* Active state for toggle buttons */
+.toolbar-actions button.btn-active {
+  background-color: #000000;
+  color: #ffffff;
+  font-weight: 600;
 }
 
 .bpmn-canvas {
   flex: 1;
   height: 100%;
-  width: 100%;
+  overflow: hidden;
+  background-color: #ffffff;
 }
+
+/* ────────────────────────────────────────────────────────────────────────
+   Properties Panel - Collapsible with Smooth Animation
+   ──────────────────────────────────────────────────────────────────────── */
+
+.bpmn-properties-panel {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #ffffff;
+  border-left: 2px solid #000000;
+  flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* Collapsed state - hidden but still in DOM for BPMN.js */
+.bpmn-properties-panel.collapsed {
+  width: 0;
+  min-width: 0;
+  max-width: 0;
+  border-left: none;
+  overflow: hidden;
+  opacity: 0;
+}
+
+/* Expanded state - full properties panel */
+.bpmn-properties-panel.expanded {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  opacity: 1;
+}
+
+.bpmn-properties-panel:empty {
+  display: none;
+}
+
+.unsaved-indicator {
+  color: #ff0000;
+  margin-left: 0.5rem;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.btn-save {
+  background-color: #10b981 !important;
+  color: white !important;
+  border-color: #10b981 !important;
+  font-weight: 600;
+}
+
+.btn-save:hover {
+  background-color: #059669 !important;
+  border-color: #059669 !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   Loading & Error States
+   ──────────────────────────────────────────────────────────────────────── */
 
 .bpmn-loading,
 .bpmn-error {
@@ -59,48 +162,394 @@
   left: 50%;
   transform: translate(-50%, -50%);
   padding: 1rem 2rem;
-  border-radius: 8px;
+  border: 2px solid #000000;
+  border-radius: 0;
   z-index: 1000;
   font-weight: 500;
-}
-
-.bpmn-loading {
-  background-color: #3b82f6;
-  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #ffffff;
+  color: #000000;
 }
 
 .bpmn-error {
-  background-color: #ef4444;
-  color: white;
+  border-width: 3px; /* Thicker border for errors */
 }
 
-/* Override bpmn-js default styles */
+/* ────────────────────────────────────────────────────────────────────────
+   BPMN.js Core Canvas Styling - Corporate Monochrome
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Main canvas container */
 .djs-container {
-  background-color: #fafafa;
+  background-color: #ffffff !important;
+  font-family: Arial, Helvetica, sans-serif !important;
 }
 
+/* ────────────────────────────────────────────────────────────────────────
+   START EVENT - Single Circle with Icon
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Start Event - Single circle */
+.djs-visual > circle[r="18"] {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   END EVENT - Double Circle (BPMN Standard)
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* End Event - Thick border circle */
+.djs-visual > circle[r="18"][stroke-width="4"],
+.djs-visual > circle[r="18"][stroke-width="6"] {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 4px !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   TASKS - Rounded Rectangles with Icons
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Task rectangles */
+.djs-visual > rect {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+/* User Task - Special styling */
+.djs-shape[data-element-id*="task"] .djs-visual > rect,
+.djs-shape[class*="UserTask"] .djs-visual > rect {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   GATEWAYS - Diamond Shape with Symbols
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Gateway diamond - main shape */
+.djs-visual > path.djs-element[d*="M 25,0"],
+.djs-visual > path[d*="M25,0"] {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+/* Gateway paths (any diamond-like path) */
+.djs-visual > path[fill="#ffffff"] {
+  fill: #ffffff !important;
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+}
+
+/* Gateway marker symbols (X, +, O) - CRITICAL for visibility */
+.djs-element[data-element-id*="gateway"] .djs-visual > path,
+.djs-element[class*="Gateway"] .djs-visual > path {
+  stroke: #000000 !important;
+  stroke-width: 2.5px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Exclusive Gateway X marker - Enhanced targeting */
+.djs-element[data-element-id*="gateway"] .djs-visual > path:nth-child(2),
+.djs-element[class*="ExclusiveGateway"] .djs-visual > path[d*="M"],
+.djs-element[class*="exclusiveGateway"] .djs-visual > path[d*="M"],
+.djs-visual > path.djs-gateway-marker,
+.djs-visual > g > path[d*="M 0"] {
+  fill: none !important;
+  stroke: #000000 !important;
+  stroke-width: 3px !important;
+  stroke-linecap: round !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Parallel Gateway + marker */
+.djs-element[class*="ParallelGateway"] .djs-visual > path[d*="M 0"],
+.djs-element[data-element-id*="gateway"][data-element-id*="parallel"] .djs-visual > path:nth-child(2) {
+  fill: none !important;
+  stroke: #000000 !important;
+  stroke-width: 3px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Inclusive Gateway O marker */
+.djs-element[class*="InclusiveGateway"] .djs-visual > circle,
+.djs-element[data-element-id*="gateway"][data-element-id*="inclusive"] .djs-visual > circle {
+  fill: none !important;
+  stroke: #000000 !important;
+  stroke-width: 2.5px !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   SEQUENCE FLOWS - Connectors with 90° Angles
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Sequence flow lines - Force straight orthogonal routing */
+.djs-connection .djs-visual > path {
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+  fill: none !important;
+  /* Force straight lines instead of bezier curves */
+  stroke-linejoin: miter !important;
+  stroke-linecap: square !important;
+  /* Remove any curve/smoothing */
+  shape-rendering: crispEdges !important;
+}
+
+/* Arrowheads */
+.djs-connection .djs-visual > path.djs-connection-marker {
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+.djs-connection .djs-visual > polygon {
+  fill: #000000 !important;
+  stroke: #000000 !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   SELECTION & HOVER STATES
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Selected element - Dotted outline instead of color */
+.djs-shape.selected .djs-outline,
+.djs-connection.selected .djs-outline {
+  stroke: #000000 !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 4, 4 !important;
+  fill: none !important;
+}
+
+.djs-shape.selected .djs-visual > * {
+  stroke: #000000 !important;
+  stroke-width: 3px !important;
+}
+
+.djs-connection.selected .djs-visual > path {
+  stroke: #000000 !important;
+  stroke-width: 3px !important;
+}
+
+/* Hover effect - Slightly thicker border */
+.djs-shape:hover .djs-visual > * {
+  stroke: #000000 !important;
+  stroke-width: 2.5px !important;
+}
+
+.djs-connection:hover .djs-visual > path {
+  stroke: #000000 !important;
+  stroke-width: 2.5px !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   LABELS - Clean Typography
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Labels on elements and connectors */
+.djs-label {
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  fill: #000000 !important;
+}
+
+.djs-label > text {
+  fill: #000000 !important;
+  font-weight: 500 !important;
+}
+
+/* Label background for readability */
+.djs-label-background {
+  fill: #ffffff !important;
+  opacity: 0.9 !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   SEQUENCE FLOW LABELS - Visible for Conditional Flows
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* 
+ * UPDATED: Show sequence flow labels to display conditional flow names
+ * (e.g., "Approved", "Rejected", "Valid", "Invalid")
+ * 
+ * These labels are critical for understanding gateway branching logic.
+ * While they may cause some visual overlap, they provide essential context.
+ * 
+ * Labels include: gateway conditions, approval states, validation results
+ */
+.djs-connection .djs-label {
+  display: block !important;
+  visibility: visible !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  fill: #000000 !important;
+}
+
+.djs-connection .djs-label-background {
+  display: block !important;
+  visibility: visible !important;
+  fill: #ffffff !important;
+  opacity: 0.85 !important;
+  rx: 2 !important;
+  ry: 2 !important;
+}
+
+.djs-connection .djs-label > text {
+  fill: #000000 !important;
+  font-weight: 600 !important;
+  text-anchor: middle !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   EDITING TOOLS (Enabled)
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Palette - Element creation toolbar */
 .djs-palette {
-  background-color: white;
-  border: 1px solid #e2e8f0;
+  background-color: #ffffff !important;
+  border-right: 2px solid #000000 !important;
 }
 
+/* Context Pad - Element actions */
 .djs-context-pad {
-  background-color: white;
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
 }
 
-/* Development notice for read-only architecture */
+/* Drag handles - Enabled for resizing */
+.djs-resize-handle,
+.djs-drag-handle {
+  display: block !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   OVERLAYS & ANNOTATIONS
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Overlays (warnings, errors, info) */
+.djs-overlay {
+  background-color: #ffffff !important;
+  border: 2px solid #000000 !important;
+  border-radius: 0 !important;
+  padding: 0.5rem !important;
+  font-size: 0.75rem !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  color: #000000 !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   MINIMAP (if enabled)
+   ──────────────────────────────────────────────────────────────────────── */
+
+.djs-minimap {
+  border: 2px solid #000000 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+}
+
+.djs-minimap .djs-minimap-canvas {
+  background: #ffffff !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   GRID (Hidden for clean documentation style)
+   ──────────────────────────────────────────────────────────────────────── */
+
+.djs-grid {
+  display: none !important;
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   READ-ONLY ARCHITECTURAL NOTICE
+   ──────────────────────────────────────────────────────────────────────── */
+
 .bpmn-dev-notice {
   position: absolute;
   bottom: 1rem;
   right: 1rem;
   padding: 0.5rem 1rem;
-  background-color: #fef3c7;
-  border: 2px solid #f59e0b;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  background-color: #ffffff;
+  border: 2px solid #000000;
+  border-radius: 0;
+  font-size: 0.7rem;
   font-weight: 600;
-  color: #92400e;
+  color: #000000;
   z-index: 100;
   pointer-events: none;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
+/* ────────────────────────────────────────────────────────────────────────
+   TASK ICONS & EVENT MARKERS
+   Note: Task icons and event markers require BPMN.js overlays or custom
+   renderer extensions. CSS pseudo-elements don't work on SVG elements.
+   This is planned for future enhancement.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Placeholder for future icon implementation */
+/* Task icons (16px) will be added via BPMN.js overlays */
+/* Event markers (14px) will be added via BPMN.js overlays */
+
+/* ────────────────────────────────────────────────────────────────────────
+   PRINT OPTIMIZATION
+   ──────────────────────────────────────────────────────────────────────── */
+
+@media print {
+  .bpmn-toolbar {
+    display: none !important;
+  }
+  
+  .bpmn-dev-notice {
+    display: none !important;
+  }
+  
+  .bpmn-diagram-container {
+    background: #ffffff !important;
+  }
+  
+  /* Ensure crisp lines in print */
+  .djs-visual > * {
+    stroke-width: 2px !important;
+  }
+  
+  .djs-connection .djs-visual > path {
+    stroke-width: 2px !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   ZOOM CONTROLS
+   ──────────────────────────────────────────────────────────────────────── */
+
+.djs-zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 10;
+}
+
+.djs-zoom-controls button {
+  background: #ffffff !important;
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+  border-radius: 0 !important;
+}
+
+.djs-zoom-controls button:hover {
+  background: #000000 !important;
+  color: #ffffff !important;
+}

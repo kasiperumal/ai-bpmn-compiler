@@ -16,11 +16,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * REST controller for process image operations
+ * REST controller for process image operations.
+ * 
+ * CORS is configured globally in WebConfig.java - do not add @CrossOrigin here
+ * to avoid conflicts with the global configuration.
  */
 @RestController
 @RequestMapping("/api/process")
-@CrossOrigin(origins = "*")
 public class ProcessImageController {
     
     private static final Logger logger = LoggerFactory.getLogger(ProcessImageController.class);

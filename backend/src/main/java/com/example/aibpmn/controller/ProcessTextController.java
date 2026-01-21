@@ -13,11 +13,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * REST controller for creating processes from text descriptions
+ * REST controller for creating processes from text descriptions.
+ * 
+ * CORS is configured globally in WebConfig.java - do not add @CrossOrigin here
+ * to avoid conflicts with the global configuration.
  */
 @RestController
 @RequestMapping("/api/process")
-@CrossOrigin(origins = "*")
 public class ProcessTextController {
     
     private static final Logger logger = LoggerFactory.getLogger(ProcessTextController.class);
@@ -63,22 +65,19 @@ public class ProcessTextController {
      * Get the stored text description for a process
      * 
      * @param processId The process ID
-     * @return The text description
+     * @return The text description from ProcessModel
      */
     @GetMapping("/{processId}/text")
     public ResponseEntity<Map<String, String>> getTextDescription(@PathVariable String processId) {
         logger.info("Retrieving text description for processId: {}", processId);
         
-        String description = textService.getTextDescription(processId);
-        
-        if (description == null) {
-            logger.warn("Text description not found for processId: {}", processId);
-            return ResponseEntity.notFound().build();
-        }
+        // Note: Text description is now stored in ProcessModel.description
+        // This endpoint is kept for backward compatibility
+        // Clients should use GET /api/process/{processId} instead
         
         Map<String, String> response = new HashMap<>();
         response.put("processId", processId);
-        response.put("description", description);
+        response.put("message", "Text descriptions are now stored in ProcessModel. Use GET /api/process/" + processId + " instead");
         
         return ResponseEntity.ok(response);
     }

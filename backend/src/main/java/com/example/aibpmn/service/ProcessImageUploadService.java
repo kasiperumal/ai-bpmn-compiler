@@ -148,7 +148,7 @@ public class ProcessImageUploadService {
         ProcessModel processModel = new ProcessModel();
         processModel.setId(processId);
         processModel.setName("Process from Image - " + processId);
-        processModel.setVersion("1.0.0");
+        processModel.setVersion(1);
         processModel.setStatus(ProcessStatus.DRAFT);
         
         processModelRepository.save(processModel);

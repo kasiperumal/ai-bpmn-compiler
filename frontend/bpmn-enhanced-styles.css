@@ -1,0 +1,599 @@
+/**
+ * Enhanced BPMN Viewer Styles
+ * 
+ * Copy this file or merge these styles into BpmnDiagram.css
+ * for immediate visual improvements.
+ * 
+ * Priority: P0 (Quick Wins)
+ * Time to implement: 30 minutes
+ * Visual impact: High
+ */
+
+/* ========================================
+   ENHANCED CANVAS
+   ======================================== */
+
+.djs-container {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  /* Optional: Add subtle grid pattern */
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ========================================
+   ELEMENT COLOR CODING
+   ======================================== */
+
+/* Start Events - Vibrant Green */
+.djs-element[data-element-id*="StartEvent"] .djs-visual > circle,
+.djs-element[data-element-id*="startEvent"] .djs-visual > circle {
+  fill: #10b981 !important;
+  stroke: #059669 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
+}
+
+/* End Events - Vibrant Red */
+.djs-element[data-element-id*="EndEvent"] .djs-visual > circle,
+.djs-element[data-element-id*="endEvent"] .djs-visual > circle {
+  fill: #ef4444 !important;
+  stroke: #dc2626 !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 2px 4px rgba(239, 68, 68, 0.3));
+}
+
+/* Tasks - Modern Blue */
+.djs-element[data-element-id*="Task"] .djs-visual > rect,
+.djs-element[data-element-id*="task"] .djs-visual > rect {
+  fill: #3b82f6 !important;
+  stroke: #2563eb !important;
+  stroke-width: 2.5px !important;
+  rx: 8px !important;
+  filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.25));
+}
+
+/* User Tasks - Distinct Color */
+.djs-element[data-element-id*="UserTask"] .djs-visual > rect,
+.djs-element[data-element-id*="userTask"] .djs-visual > rect {
+  fill: #6366f1 !important;
+  stroke: #4f46e5 !important;
+}
+
+/* Service Tasks - Purple */
+.djs-element[data-element-id*="ServiceTask"] .djs-visual > rect,
+.djs-element[data-element-id*="serviceTask"] .djs-visual > rect {
+  fill: #8b5cf6 !important;
+  stroke: #7c3aed !important;
+}
+
+/* Business Rule Tasks - Orange */
+.djs-element[data-element-id*="BusinessRuleTask"] .djs-visual > rect,
+.djs-element[data-element-id*="businessRuleTask"] .djs-visual > rect {
+  fill: #f59e0b !important;
+  stroke: #d97706 !important;
+}
+
+/* Gateways - Amber/Yellow */
+.djs-element[data-element-id*="Gateway"] .djs-visual > polygon,
+.djs-element[data-element-id*="gateway"] .djs-visual > polygon {
+  fill: #fbbf24 !important;
+  stroke: #f59e0b !important;
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.3));
+}
+
+/* Exclusive Gateways - Keep Yellow */
+.djs-element[data-element-id*="ExclusiveGateway"] .djs-visual > polygon {
+  fill: #fbbf24 !important;
+  stroke: #f59e0b !important;
+}
+
+/* Parallel Gateways - Purple */
+.djs-element[data-element-id*="ParallelGateway"] .djs-visual > polygon {
+  fill: #a78bfa !important;
+  stroke: #8b5cf6 !important;
+}
+
+/* Sequence Flows - Darker, More Visible */
+.djs-element[data-element-id*="SequenceFlow"] .djs-visual > path,
+.djs-element[data-element-id*="sequenceFlow"] .djs-visual > path {
+  stroke: #475569 !important;
+  stroke-width: 2px !important;
+}
+
+/* SubProcesses - Pink/Magenta */
+.djs-element[data-element-id*="SubProcess"] .djs-visual > rect,
+.djs-element[data-element-id*="subProcess"] .djs-visual > rect {
+  fill: #e879f9 !important;
+  stroke: #d946ef !important;
+}
+
+/* ========================================
+   HOVER EFFECTS
+   ======================================== */
+
+.djs-element.hover .djs-visual > rect,
+.djs-element.hover .djs-visual > circle,
+.djs-element.hover .djs-visual > polygon {
+  filter: brightness(1.15) drop-shadow(0 4px 12px rgba(59, 130, 246, 0.4)) !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.djs-element.hover .djs-visual > path {
+  stroke-width: 3px !important;
+  filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.3));
+  transition: all 0.2s ease;
+}
+
+/* Pulse animation on hover */
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.djs-element.hover .djs-visual > * {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ========================================
+   SELECTION EFFECTS
+   ======================================== */
+
+.djs-element.selected .djs-visual > rect,
+.djs-element.selected .djs-visual > circle,
+.djs-element.selected .djs-visual > polygon {
+  stroke: #3b82f6 !important;
+  stroke-width: 4px !important;
+  stroke-dasharray: 8, 4 !important;
+  animation: dash-animation 1s linear infinite;
+  filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.6)) !important;
+}
+
+.djs-element.selected .djs-visual > path {
+  stroke: #3b82f6 !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+}
+
+@keyframes dash-animation {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* ========================================
+   ENHANCED TOOLBAR
+   ======================================== */
+
+.bpmn-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+}
+
+.bpmn-toolbar h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.toolbar-actions button {
+  padding: 0.625rem 1.25rem;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #475569;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.toolbar-actions button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.toolbar-actions button:hover {
+  color: white;
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35);
+}
+
+.toolbar-actions button:hover::before {
+  opacity: 1;
+}
+
+.toolbar-actions button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.toolbar-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========================================
+   LOADING & ERROR STATES
+   ======================================== */
+
+.bpmn-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1.5rem 3rem;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.4);
+  z-index: 1000;
+  animation: fadeIn 0.3s ease, pulse-glow 2s ease-in-out infinite;
+}
+
+.bpmn-error {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 1.5rem 3rem;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4);
+  z-index: 1000;
+  animation: shake 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 12px 48px rgba(59, 130, 246, 0.6);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translate(-50%, -50%); }
+  25% { transform: translate(-48%, -50%); }
+  75% { transform: translate(-52%, -50%); }
+}
+
+/* ========================================
+   LABELS & TEXT
+   ======================================== */
+
+.djs-label text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 600;
+  fill: #1e293b !important;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.djs-element[data-element-id*="StartEvent"] .djs-label text,
+.djs-element[data-element-id*="EndEvent"] .djs-label text {
+  fill: #ffffff !important;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ========================================
+   SEARCH HIGHLIGHTING
+   ======================================== */
+
+.djs-element.search-match .djs-visual > * {
+  stroke: #10b981 !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6));
+  animation: pulse-green 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(16, 185, 129, 0.8));
+  }
+}
+
+/* ========================================
+   CONTEXT MENU (if implemented)
+   ======================================== */
+
+.bpmn-context-menu {
+  position: fixed;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  min-width: 180px;
+  z-index: 10000;
+  animation: slideIn 0.2s ease;
+}
+
+.bpmn-context-menu button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.2s ease;
+}
+
+.bpmn-context-menu button:hover {
+  background: #f1f5f9;
+  color: #3b82f6;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
+   ZOOM CONTROLS ENHANCEMENT
+   ======================================== */
+
+.zoom-level {
+  padding: 0.5rem 1rem;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.9rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+/* ========================================
+   MINIMAP (if installed)
+   ======================================== */
+
+.bpmn-minimap {
+  position: absolute;
+  bottom: 2rem;
+  right: 2rem;
+  width: 220px;
+  height: 165px;
+  border: 3px solid #e2e8f0;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  z-index: 50;
+}
+
+.bpmn-minimap canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.bpmn-minimap .viewport {
+  border: 3px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* ========================================
+   DEV NOTICE
+   ======================================== */
+
+.bpmn-dev-notice {
+  position: absolute;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #92400e;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+  z-index: 100;
+  pointer-events: none;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+
+@media (max-width: 768px) {
+  .bpmn-toolbar {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toolbar-actions button {
+    flex: 1;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .bpmn-minimap {
+    width: 150px;
+    height: 100px;
+    bottom: 1rem;
+    right: 1rem;
+  }
+}
+
+/* ========================================
+   DARK MODE SUPPORT
+   ======================================== */
+
+body.dark-mode .djs-container {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+body.dark-mode .bpmn-toolbar {
+  background: rgba(30, 41, 59, 0.95);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .bpmn-toolbar h2 {
+  background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.dark-mode .toolbar-actions button {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+body.dark-mode .djs-label text {
+  fill: #f1f5f9 !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .zoom-level {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+/* ========================================
+   CUSTOM SCROLLBARS
+   ======================================== */
+
+.djs-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.djs-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 6px;
+}
+
+.djs-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+  border: 2px solid #f1f5f9;
+}
+
+.djs-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ========================================
+   ANIMATIONS FOR NEW ELEMENTS
+   ======================================== */
+
+@keyframes element-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.djs-element.new {
+  animation: element-appear 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+  .bpmn-toolbar,
+  .bpmn-dev-notice,
+  .bpmn-minimap {
+    display: none !important;
+  }
+
+  .djs-container {
+    background: white !important;
+  }
+
+  .djs-element .djs-visual > * {
+    filter: none !important;
+    box-shadow: none !important;
+  }
+}
+

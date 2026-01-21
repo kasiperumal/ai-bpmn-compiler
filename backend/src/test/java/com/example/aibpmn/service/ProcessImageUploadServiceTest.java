@@ -71,7 +71,7 @@ class ProcessImageUploadServiceTest {
         ProcessModel savedModel = captor.getValue();
         assertEquals(response.getProcessId(), savedModel.getId());
         assertEquals(ProcessStatus.DRAFT, savedModel.getStatus());
-        assertEquals("1.0.0", savedModel.getVersion());
+        assertEquals(1, savedModel.getVersion());
     }
     
     @Test
